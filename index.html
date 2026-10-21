@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>SMASH RUNNER - 障害物を加速粉砕せよ！</title>
+  <title>SMASH RUNNER - 野菜クイズ粉砕ラン</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts -->
@@ -38,6 +38,14 @@
       background: #ef4444;
       border-radius: 3px;
     }
+    /* Heart Bounce Animation */
+    .heart-anim {
+      animation: heartPulse 1.2s infinite ease-in-out;
+    }
+    @keyframes heartPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.15); }
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col items-center justify-between relative bg-slate-950 text-white select-none">
@@ -45,14 +53,14 @@
   <!-- TOP HEADER / NAV BAR -->
   <header class="w-full max-w-5xl px-4 py-3 flex items-center justify-between border-b border-slate-800 bg-slate-900/80 backdrop-blur z-20">
     <div class="flex items-center space-x-3">
-      <div class="w-10 h-10 bg-gradient-to-tr from-red-600 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/30">
-        <i class="fa-solid fa-car-burst text-white text-xl"></i>
+      <div class="w-10 h-10 bg-gradient-to-tr from-emerald-600 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+        <i class="fa-solid fa-carrot text-white text-xl"></i>
       </div>
       <div>
-        <h1 class="text-xl font-black font-orbitron tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-red-500 via-amber-400 to-yellow-300">
-          SMASH RUNNER
+        <h1 class="text-xl font-black font-orbitron tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-amber-300 to-yellow-300">
+          SMASH RUNNER <span class="text-xs text-emerald-400 font-sans">野菜クイズ編</span>
         </h1>
-        <p class="text-xs text-slate-400">避けるな、加速して打ち砕け！</p>
+        <p class="text-xs text-slate-400">クイズに答えて壁を加速粉砕せよ！</p>
       </div>
     </div>
 
@@ -87,7 +95,7 @@
   </header>
 
   <!-- MAIN CONTAINER -->
-  <main class="w-full max-w-5xl flex-1 flex flex-col items-center justify-center p-2 sm:p-4 relative w-full">
+  <main class="w-full max-w-5xl flex-1 flex flex-col items-center justify-center p-2 sm:p-4 relative">
 
     <!-- GAME CANVAS CONTAINER -->
     <div class="relative w-full aspect-[16/9] max-h-[70vh] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border-2 border-slate-800 flex items-center justify-center">
@@ -100,17 +108,28 @@
 
       <!-- IN-GAME HUD OVERLAY -->
       <div id="hud" class="absolute inset-x-0 top-0 p-4 flex justify-between items-start pointer-events-none hidden">
-        <!-- Speed & Nitro -->
+        <!-- Lives & Speed -->
         <div class="flex flex-col space-y-2">
+          <!-- Lives Indicator -->
+          <div class="bg-slate-900/90 backdrop-blur px-4 py-2 rounded-xl border border-red-500/30 flex items-center space-x-2 shadow-lg">
+            <span class="text-xs text-slate-400 font-bold mr-1">LIFE:</span>
+            <div id="hud-lives" class="flex space-x-1 text-xl text-red-500">
+              <i class="fa-solid fa-heart heart-anim"></i>
+              <i class="fa-solid fa-heart heart-anim"></i>
+              <i class="fa-solid fa-heart heart-anim"></i>
+            </div>
+          </div>
+
           <!-- Speed Gauge -->
           <div class="bg-slate-900/80 backdrop-blur px-4 py-2 rounded-xl border border-slate-700/50 flex items-baseline space-x-2">
             <span class="text-xs text-slate-400 font-bold">SPEED</span>
             <span id="hud-speed" class="text-2xl font-black font-orbitron text-amber-400">0</span>
             <span class="text-xs font-bold text-amber-500">KM/H</span>
           </div>
+
           <!-- Nitro Bar -->
           <div class="w-36 sm:w-48 bg-slate-950/80 rounded-full h-3 p-0.5 border border-slate-700">
-            <div id="hud-nitro-fill" class="bg-gradient-to-r from-amber-500 to-red-500 h-full rounded-full transition-all duration-75 w-0 shadow-lg shadow-red-500/50"></div>
+            <div id="hud-nitro-fill" class="bg-gradient-to-r from-emerald-500 via-amber-500 to-red-500 h-full rounded-full transition-all duration-75 w-0 shadow-lg shadow-emerald-500/50"></div>
           </div>
         </div>
 
@@ -120,19 +139,22 @@
             <span class="text-[10px] text-slate-400 font-bold block">SCORE</span>
             <span id="hud-score" class="text-2xl font-black font-orbitron text-white">0</span>
           </div>
-          <div id="hud-combo-badge" class="hidden bg-gradient-to-r from-red-600 to-orange-500 text-white font-black font-orbitron text-xs px-3 py-1 rounded-full animate-bounce shadow-lg shadow-red-500/50">
-            <span id="hud-combo">1</span>x SMASH COMBO!
+          <div id="hud-combo-badge" class="hidden bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-black font-orbitron text-xs px-3 py-1 rounded-full animate-bounce shadow-lg shadow-emerald-500/50">
+            <span id="hud-combo">1</span>x QUIZ SMASH!
           </div>
         </div>
       </div>
 
       <!-- MAIN MENU OVERLAY -->
       <div id="overlay-menu" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-10">
-        <h2 class="text-4xl sm:text-6xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-amber-400 to-yellow-300 drop-shadow-lg mb-2">
-          CRASH & SMASH
+        <div class="text-5xl mb-2 animate-bounce">🥕🥦🍅</div>
+        <h2 class="text-4xl sm:text-6xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-amber-300 to-yellow-300 drop-shadow-lg mb-2">
+          VEGE SMASH
         </h2>
         <p class="text-slate-300 max-w-md text-sm sm:text-base mb-6">
-          障壁を連続粉砕してスピード上限を突破せよ！<br>ニトロ満タンで全てを打ち砕く「OVERDRIVE」発動！
+          障害物に遭遇したら「野菜クイズ」に正解して壁を粉砕せよ！<br>
+          <span class="text-red-400 font-bold">間違えるとライフ減少（最大3回まで）！</span><br>
+          進むほど「何科の野菜か」など問題が難しくなるぞ！
         </p>
 
         <!-- Stats Quick View -->
@@ -146,14 +168,14 @@
             <span id="stat-coins" class="text-xl font-black font-orbitron text-yellow-400">0</span>
           </div>
           <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 col-span-2 sm:col-span-1">
-            <span class="text-xs text-slate-400 block">累計粉砕数</span>
-            <span id="stat-smashes" class="text-xl font-black font-orbitron text-red-400">0</span>
+            <span class="text-xs text-slate-400 block">正解粉砕数</span>
+            <span id="stat-smashes" class="text-xl font-black font-orbitron text-emerald-400">0</span>
           </div>
         </div>
 
         <!-- Buttons -->
         <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 w-full max-w-xs sm:max-w-md">
-          <button id="btn-start" class="flex-1 bg-gradient-to-r from-red-600 via-amber-500 to-yellow-500 hover:from-red-500 hover:to-yellow-400 text-slate-950 font-black font-orbitron text-lg py-3 px-6 rounded-xl shadow-xl shadow-red-500/20 transform transition hover:-translate-y-0.5 active:translate-y-0">
+          <button id="btn-start" class="flex-1 bg-gradient-to-r from-emerald-500 via-amber-500 to-yellow-500 hover:from-emerald-400 hover:to-yellow-400 text-slate-950 font-black font-orbitron text-lg py-3 px-6 rounded-xl shadow-xl shadow-emerald-500/20 transform transition hover:-translate-y-0.5 active:translate-y-0">
             <i class="fa-solid fa-play mr-2"></i> START GAME
           </button>
           <button id="btn-shop" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-xl border border-slate-700 transition flex items-center justify-center space-x-2">
@@ -163,13 +185,49 @@
         </div>
       </div>
 
+      <!-- QUIZ MODAL OVERLAY -->
+      <div id="overlay-quiz" class="absolute inset-0 bg-slate-950/95 backdrop-blur-lg flex flex-col items-center justify-center p-4 z-30 hidden">
+        <div class="w-full max-w-lg bg-slate-900 border-2 border-emerald-500/50 rounded-2xl p-5 shadow-2xl relative flex flex-col items-center">
+          
+          <!-- Difficulty Badge -->
+          <div class="absolute -top-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-black text-xs px-4 py-1 rounded-full uppercase tracking-wider shadow-md">
+            <span id="quiz-level-badge">LV.1 野菜当てクイズ</span>
+          </div>
+
+          <!-- Quiz Vegetable Illustration/Emoji -->
+          <div id="quiz-emoji" class="text-7xl sm:text-8xl my-3 animate-pulse">
+            🥕
+          </div>
+
+          <!-- Question Text -->
+          <h3 id="quiz-question" class="text-lg sm:text-xl font-bold text-center text-white mb-4 max-w-md">
+            この野菜の名前は何でしょう？
+          </h3>
+
+          <!-- Options Grid -->
+          <div id="quiz-options" class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-2">
+            <!-- Dynamically Inserted Buttons -->
+          </div>
+
+          <!-- Answer Feedback Box (Initially Hidden) -->
+          <div id="quiz-feedback" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 mt-2 hidden text-center">
+            <p id="quiz-result-title" class="text-lg font-black mb-1"></p>
+            <p id="quiz-result-detail" class="text-xs sm:text-sm text-slate-300 mb-3"></p>
+            <button id="btn-quiz-continue" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black py-2 rounded-xl transition">
+              次へ進む <i class="fa-solid fa-arrow-right ml-1"></i>
+            </button>
+          </div>
+
+        </div>
+      </div>
+
       <!-- GAME OVER OVERLAY -->
       <div id="overlay-gameover" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-10 hidden">
         <div class="w-16 h-16 bg-red-600/20 text-red-500 rounded-2xl flex items-center justify-center text-3xl mb-3 border border-red-500/30">
-          <i class="fa-solid fa-triangle-exclamation"></i>
+          <i class="fa-solid fa-skull"></i>
         </div>
         <h3 class="text-3xl font-black font-orbitron text-red-500 mb-1">CRASH & STOP!</h3>
-        <p class="text-slate-400 text-xs mb-6">スピード失速によりマシン停止</p>
+        <p class="text-slate-400 text-xs mb-6">ライフが全滅してマシンがクラッシュしました</p>
 
         <div class="bg-slate-900/90 p-5 rounded-2xl border border-slate-800 w-full max-w-xs space-y-3 mb-6">
           <div class="flex justify-between items-center text-sm">
@@ -177,8 +235,8 @@
             <span id="go-score" class="font-black font-orbitron text-amber-400 text-lg">0</span>
           </div>
           <div class="flex justify-between items-center text-sm">
-            <span class="text-slate-400">粉砕数</span>
-            <span id="go-smashes" class="font-bold text-red-400">0 個</span>
+            <span class="text-slate-400">正解クイズ数</span>
+            <span id="go-smashes" class="font-bold text-emerald-400">0 回</span>
           </div>
           <div class="flex justify-between items-center text-sm">
             <span class="text-slate-400">獲得コイン</span>
@@ -189,7 +247,7 @@
           </div>
         </div>
 
-        <button id="btn-restart" class="w-full max-w-xs bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-slate-950 font-black font-orbitron py-3 px-6 rounded-xl shadow-lg transition">
+        <button id="btn-restart" class="w-full max-w-xs bg-gradient-to-r from-emerald-500 to-amber-500 hover:from-emerald-400 hover:to-amber-400 text-slate-950 font-black font-orbitron py-3 px-6 rounded-xl shadow-lg transition">
           <i class="fa-solid fa-rotate-right mr-2"></i> RETRY
         </button>
       </div>
@@ -201,7 +259,7 @@
       <button id="btn-touch-left" class="bg-slate-800 active:bg-slate-700 py-4 rounded-xl text-xl font-bold border border-slate-700 flex items-center justify-center">
         <i class="fa-solid fa-arrow-left"></i>
       </button>
-      <button id="btn-touch-nitro" class="bg-gradient-to-r from-red-600 to-amber-500 text-white py-4 rounded-xl font-black font-orbitron text-sm border border-red-400 shadow-md flex items-center justify-center space-x-1">
+      <button id="btn-touch-nitro" class="bg-gradient-to-r from-emerald-600 to-amber-500 text-white py-4 rounded-xl font-black font-orbitron text-sm border border-emerald-400 shadow-md flex items-center justify-center space-x-1">
         <i class="fa-solid fa-bolt"></i>
         <span>NITRO</span>
       </button>
@@ -242,9 +300,9 @@
         <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
           <div>
             <h4 class="text-sm font-bold text-white flex items-center">
-              <i class="fa-solid fa-shield-halved text-red-400 mr-2"></i> 粉砕力 (Ram Power)
+              <i class="fa-solid fa-shield-halved text-emerald-400 mr-2"></i> 粉砕ボーナス (Smash Bonus)
             </h4>
-            <p class="text-[11px] text-slate-400">高耐久障害物を打ち砕く威力向上</p>
+            <p class="text-[11px] text-slate-400">クイズ正解時の獲得スコア増加</p>
             <p id="level-ram" class="text-xs font-bold text-amber-400 mt-1">Lv. 1</p>
           </div>
           <button id="btn-upgrade-ram" class="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-bold py-2 px-3 rounded-lg shadow hover:brightness-110 disabled:opacity-50">
@@ -272,7 +330,7 @@
             <h4 class="text-sm font-bold text-white flex items-center">
               <i class="fa-solid fa-bolt text-amber-400 mr-2"></i> ニトロ効率 (Nitro Boost)
             </h4>
-            <p class="text-[11px] text-slate-400">粉砕時のニトロゲージ回復率アップ</p>
+            <p class="text-[11px] text-slate-400">正解粉砕時のニトロ回復量アップ</p>
             <p id="level-nitro" class="text-xs font-bold text-amber-400 mt-1">Lv. 1</p>
           </div>
           <button id="btn-upgrade-nitro" class="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-bold py-2 px-3 rounded-lg shadow hover:brightness-110 disabled:opacity-50">
@@ -317,11 +375,44 @@
           this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         }
       }
-      playSmash(durability = 1) {
+      playCorrect() {
         if (!this.ctx) return;
         const now = this.ctx.currentTime;
-        
-        // Noise buffer for impact crunch
+        // Fanfare High Chime
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+          gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.08);
+          osc.stop(now + idx * 0.08 + 0.25);
+        });
+      }
+
+      playWrong() {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        // Low Buzzing Error Sound
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.setValueAtTime(110, now + 0.15);
+        gain.gain.setValueAtTime(0.4, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      }
+
+      playSmash() {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
         const bufferSize = this.ctx.sampleRate * 0.25;
         const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
         const data = buffer.getChannelData(0);
@@ -331,10 +422,9 @@
         
         const noise = this.ctx.createBufferSource();
         noise.buffer = buffer;
-
         const filter = this.ctx.createBiquadFilter();
         filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(800 * durability, now);
+        filter.frequency.setValueAtTime(1000, now);
         filter.frequency.exponentialRampToValueAtTime(100, now + 0.2);
 
         const gain = this.ctx.createGain();
@@ -345,20 +435,6 @@
         filter.connect(gain);
         gain.connect(this.ctx.destination);
         noise.start(now);
-
-        // Low pitch boom synth
-        const osc = this.ctx.createOscillator();
-        const oscGain = this.ctx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, now);
-        osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
-        oscGain.gain.setValueAtTime(0.5, now);
-        oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-
-        osc.connect(oscGain);
-        oscGain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.2);
       }
 
       playNitro() {
@@ -384,8 +460,8 @@
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(987.77, now); // B5
-        osc.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+        osc.frequency.setValueAtTime(987.77, now);
+        osc.frequency.setValueAtTime(1318.51, now + 0.08);
         gain.gain.setValueAtTime(0.2, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
 
@@ -412,8 +488,7 @@
       getFirestore, 
       doc, 
       getDoc, 
-      setDoc, 
-      updateDoc 
+      setDoc 
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // -------------------------------------------------------------
@@ -461,9 +536,12 @@
 
     const overlayMenu = document.getElementById('overlay-menu');
     const overlayGameOver = document.getElementById('overlay-gameover');
+    const overlayQuiz = document.getElementById('overlay-quiz');
+
     const hud = document.getElementById('hud');
     const hudSpeed = document.getElementById('hud-speed');
     const hudScore = document.getElementById('hud-score');
+    const hudLives = document.getElementById('hud-lives');
     const hudNitroFill = document.getElementById('hud-nitro-fill');
     const hudComboBadge = document.getElementById('hud-combo-badge');
     const hudCombo = document.getElementById('hud-combo');
@@ -473,6 +551,44 @@
     const shopCoinBalance = document.getElementById('shop-coin-balance');
 
     // -------------------------------------------------------------
+    // VEGETABLE QUIZ DATABASE
+    // -------------------------------------------------------------
+    const QUIZ_DATABASE = {
+      // Level 1: 絵を見て野菜の名前を当てる
+      easy: [
+        { emoji: "🥕", question: "この野菜の名前は何でしょう？", options: ["ニンジン", "ダイコン", "ゴボウ", "パプリカ"], answer: 0, detail: "正解は「ニンジン」です！" },
+        { emoji: "🍅", question: "この野菜の名前は何でしょう？", options: ["リンゴ", "トマト", "パプリカ", "イチゴ"], answer: 1, detail: "正解は「トマト」です！" },
+        { emoji: "🥦", question: "この野菜の名前は何でしょう？", options: ["カリフラワー", "キャベツ", "ブロッコリー", "レタス"], answer: 2, detail: "正解は「ブロッコリー」です！" },
+        { emoji: "🍆", question: "この野菜の名前は何でしょう？", options: ["ズッキーニ", "サツマイモ", "アボカド", "ナス"], answer: 3, detail: "正解は「ナス」です！" },
+        { emoji: "🥒", question: "この野菜の名前は何でしょう？", options: ["キュウリ", "ゴーヤ", "ズッキーニ", "オクラ"], answer: 0, detail: "正解は「キュウリ」です！" },
+        { emoji: "🌽", question: "この野菜の名前は何でしょう？", options: ["ヤングコーン", "トウモロコシ", "タケノコ", "バナナ"], answer: 1, detail: "正解は「トウモロコシ」です！" },
+        { emoji: "🧅", question: "この野菜の名前は何でしょう？", options: ["ニンニク", "カブ", "タマネギ", "ラッキョウ"], answer: 2, detail: "正解は「タマネギ」です！" },
+        { emoji: "🍠", question: "この野菜の名前は何でしょう？", options: ["ジャガイモ", "サトイモ", "ナガイモ", "サツマイモ"], answer: 3, detail: "正解は「サツマイモ」です！" },
+        { emoji: "🎃", question: "この野菜の名前は何でしょう？", options: ["カボチャ", "ズッキーニ", "メロン", "スイカ"], answer: 0, detail: "正解は「カボチャ」です！" },
+        { emoji: "🫑", question: "この野菜の名前は何でしょう？", options: ["ゴーヤ", "ピーマン", "トウガラシ", "アボカド"], answer: 1, detail: "正解は「ピーマン」です！" }
+      ],
+      // Level 2: 絵を見て「何科」の野菜かを当てる
+      medium: [
+        { emoji: "🥕", name: "ニンジン", question: "ニンジンは何科の野菜でしょう？", options: ["セリ科", "アブラナ科", "ナス科", "ウリ科"], answer: 0, detail: "正解は「セリ科」です！（パセリやミツバと同じ仲間です）" },
+        { emoji: "🍅", name: "トマト", question: "トマトは何科の野菜でしょう？", options: ["ウリ科", "ナス科", "バラ科", "ヒガンバナ科"], answer: 1, detail: "正解は「ナス科」です！（ジャガイモやピーマンもナス科です）" },
+        { emoji: "🥦", name: "ブロッコリー", question: "ブロッコリーは何科の野菜でしょう？", options: ["キク科", "セリ科", "アブラナ科", "マメ科"], answer: 2, detail: "正解は「アブラナ科」です！（キャベツやダイコンもアブラナ科です）" },
+        { emoji: "🥒", name: "キュウリ", question: "キュウリは何科の野菜でしょう？", options: ["ヒルガオ科", "ナス科", "セリ科", "ウリ科"], answer: 3, detail: "正解は「ウリ科」です！（カボチャやスイカ、ゴーヤもウリ科です）" },
+        { emoji: "🧅", name: "タマネギ", question: "タマネギは何科の野菜でしょう？", options: ["ヒガンバナ科", "アブラナ科", "イネ科", "セリ科"], answer: 0, detail: "正解は「ヒガンバナ科」です！（ニンニクやニラも同じ科です）" },
+        { emoji: "🍠", name: "サツマイモ", question: "サツマイモは何科の野菜でしょう？", options: ["ナス科", "ヒルガオ科", "サトイモ科", "マメ科"], answer: 1, detail: "正解は「ヒルガオ科」です！（アサガオの仲間になります）" },
+        { emoji: "🥬", name: "レタス", question: "レタスは何科の野菜でしょう？", options: ["アブラナ科", "セリ科", "キク科", "アカザ科"], answer: 2, detail: "正解は「キク科」です！（キャベツはアブラナ科ですがレタスはキク科です）" },
+        { emoji: "🥔", name: "ジャガイモ", question: "ジャガイモは何科の野菜でしょう？", options: ["サトイモ科", "ヒルガオ科", "アブラナ科", "ナス科"], answer: 3, detail: "正解は「ナス科」です！（サツマイモとは科が異なります）" }
+      ],
+      // Level 3: 栄養・雑学・特徴に関する問題
+      hard: [
+        { emoji: "🍅", name: "トマト", question: "トマトの抗酸化成分「リコピン」の効果的な摂り方は？", options: ["加熱して油と一緒に摂る", "生で冷やして食べる", "水に長くさらす", "皮をすべて剥いて食べる"], answer: 0, detail: "正解は「加熱して油と一緒に摂る」です！脂溶性のため油と摂ると吸収率が大幅UPします。" },
+        { emoji: "🥬", name: "キャベツ", question: "キャベツに多く含まれ、胃粘膜を保護する別名ビタミンUとは？", options: ["アリシン", "キャベジン", "リコピン", "カプサイシン"], answer: 1, detail: "正解は「キャベジン」です！胃粘膜を修復・保護する作用があります。" },
+        { emoji: "🥕", name: "ニンジン", question: "ニンジンの綺麗なオレンジ色の主成分である栄養素は？", options: ["アントシアニン", "リコピン", "β-カロテン", "ルテイン"], answer: 2, detail: "正解は「β-カロテン」です！体内でビタミンAに変換されて目や皮膚を健康に保ちます。" },
+        { emoji: "🍆", name: "ナス", question: "ナスの紫色の皮に含まれるポリフェノールの一種は？", options: ["カプサイシン", "クロロフィル", "ショウガオール", "ナスニン"], answer: 3, detail: "正解は「ナスニン」です！強い抗酸化力を持つアントシアニン系色素です。" },
+        { emoji: "🫛", name: "エダマメ", question: "エダマメが収穫されずに成長して熟すと何の豆になる？", options: ["ダイズ（大豆）", "アズキ（小豆）", "インゲンマメ", "ソラマメ"], answer: 0, detail: "正解は「ダイズ（大豆）」です！未成熟な状態の大豆を収穫したものが枝豆です。" }
+      ]
+    };
+
+    // -------------------------------------------------------------
     // Firebase Auth Handler
     // -------------------------------------------------------------
     btnLogin.addEventListener('click', async () => {
@@ -480,7 +596,7 @@
         await signInWithPopup(auth, googleProvider);
       } catch (err) {
         console.error("Login failed:", err);
-        alert("Googleログインに失敗しました。ポップアップがブロックされていないか確認してください。");
+        alert("Googleログインに失敗しました。");
       }
     });
 
@@ -496,19 +612,15 @@
         userProfile.classList.remove('hidden');
         userAvatar.src = user.photoURL || 'https://via.placeholder.com/32';
         userName.textContent = user.displayName || 'Player';
-
-        // Load User Data from Firestore
         await loadUserData(user.uid);
       } else {
         currentUser = null;
         userProfile.classList.add('hidden');
         btnLogin.classList.remove('hidden');
-        // Reset to default local stats
         updateUIStats();
       }
     });
 
-    // Firestore Functions
     async function loadUserData(uid) {
       try {
         const userRef = doc(db, 'users', uid);
@@ -527,7 +639,6 @@
             }
           };
         } else {
-          // Initialize New User Document
           await setDoc(userRef, playerData);
         }
       } catch (err) {
@@ -552,8 +663,6 @@
       statCoins.textContent = playerData.totalCoins.toLocaleString();
       statSmashes.textContent = playerData.totalSmashes.toLocaleString();
       shopCoinBalance.textContent = playerData.totalCoins.toLocaleString() + ' G';
-
-      // Shop Items Level & Cost Sync
       updateShopUI();
     }
 
@@ -602,7 +711,6 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // Canvas Sizing
     function resizeCanvas() {
       canvas.width = canvas.clientWidth;
       canvas.height = canvas.clientHeight;
@@ -612,6 +720,8 @@
 
     // Game Variables
     let isPlaying = false;
+    let isQuizActive = false;
+    let lives = 3;
     let score = 0;
     let coinsEarned = 0;
     let smashesInRun = 0;
@@ -634,6 +744,10 @@
     let floatingTexts = [];
     let roadMarkers = [];
 
+    // Active Quiz State
+    let currentCollidedObstacle = null;
+    let currentQuizData = null;
+
     // Screen Shake
     let shakeDuration = 0;
     let shakeIntensity = 0;
@@ -643,7 +757,6 @@
       shakeDuration = duration;
     }
 
-    // Lane positioning helper
     function getLaneX(laneIndex) {
       const roadWidth = canvas.width * 0.7;
       const leftBound = (canvas.width - roadWidth) / 2;
@@ -651,10 +764,24 @@
       return leftBound + laneWidth * laneIndex + laneWidth / 2;
     }
 
-    // Start Game Initialization
+    function updateLivesUI() {
+      hudLives.innerHTML = '';
+      for (let i = 0; i < 3; i++) {
+        const heart = document.createElement('i');
+        if (i < lives) {
+          heart.className = 'fa-solid fa-heart heart-anim text-red-500';
+        } else {
+          heart.className = 'fa-solid fa-heart-crack text-slate-700';
+        }
+        hudLives.appendChild(heart);
+      }
+    }
+
     function startGame() {
       audio.init();
       isPlaying = true;
+      isQuizActive = false;
+      lives = 3;
       score = 0;
       coinsEarned = 0;
       smashesInRun = 0;
@@ -663,7 +790,6 @@
       distance = 0;
       lane = 1;
 
-      // Stats calculated from Upgrades
       baseMaxSpeed = 200 + (playerData.upgrades.speed * 20);
       speed = 100;
       nitro = 100;
@@ -677,33 +803,37 @@
       floatingTexts = [];
       roadMarkers = [];
 
-      // Generate road markers
       for (let i = 0; i < 15; i++) {
         roadMarkers.push({ y: i * (canvas.height / 10) });
       }
 
+      updateLivesUI();
       overlayMenu.classList.add('hidden');
       overlayGameOver.classList.add('hidden');
+      overlayQuiz.classList.add('hidden');
       hud.classList.remove('hidden');
 
       lastTime = performance.now();
       requestAnimationFrame(gameLoop);
     }
 
-    // Input Controls
+    // Controls
     function moveLeft() {
+      if (!isPlaying || isQuizActive) return;
       if (lane > 0) {
         lane--;
         targetX = getLaneX(lane);
       }
     }
     function moveRight() {
+      if (!isPlaying || isQuizActive) return;
       if (lane < 2) {
         lane++;
         targetX = getLaneX(lane);
       }
     }
     function activateNitro() {
+      if (!isPlaying || isQuizActive) return;
       if (nitro > 20 && !isNitroActive) {
         isNitroActive = true;
         audio.playNitro();
@@ -725,40 +855,141 @@
     document.getElementById('btn-restart').addEventListener('click', startGame);
 
     // -------------------------------------------------------------
-    // Obstacle & Particle Spawners
+    // OBSTACLE & QUIZ TRIGGER LOGIC
     // -------------------------------------------------------------
-    const OBSTACLE_TYPES = [
-      { type: 'WOOD', color: '#d97706', durability: 1, score: 100, name: '木製バリケード' },
-      { type: 'GLASS', color: '#38bdf8', durability: 2, score: 250, name: '強化ガラス' },
-      { type: 'CONCRETE', color: '#94a3b8', durability: 4, score: 600, name: 'コンクリート壁' },
-      { type: 'GOLD_BOX', color: '#eab308', durability: 1, score: 500, coins: 50, name: 'ゴールド宝箱' }
-    ];
-
     function spawnObstacle() {
       const laneIndex = Math.floor(Math.random() * 3);
-      // Pick random obstacle weighted by current distance
-      const rand = Math.random();
-      let typeObj = OBSTACLE_TYPES[0];
-      if (rand > 0.85) typeObj = OBSTACLE_TYPES[3]; // Gold Box
-      else if (rand > 0.6) typeObj = OBSTACLE_TYPES[2]; // Concrete
-      else if (rand > 0.3) typeObj = OBSTACLE_TYPES[1]; // Glass
-
       obstacles.push({
         lane: laneIndex,
         x: getLaneX(laneIndex),
         y: -100,
-        width: canvas.width * 0.18,
-        height: 45,
-        type: typeObj.type,
-        color: typeObj.color,
-        durability: typeObj.durability,
-        maxDurability: typeObj.durability,
-        score: typeObj.score,
-        coins: typeObj.coins || 0
+        width: canvas.width * 0.22,
+        height: 50,
+        color: '#10b981'
       });
     }
 
-    function createExplosion(x, y, color, count = 20) {
+    function openQuizModal(obstacle) {
+      isQuizActive = true;
+      currentCollidedObstacle = obstacle;
+
+      // Select Difficulty pool based on distance / score
+      let pool = QUIZ_DATABASE.easy;
+      let badgeText = "LV.1 野菜当てクイズ";
+      
+      if (distance > 2500 || score > 8000) {
+        pool = QUIZ_DATABASE.hard;
+        badgeText = "LV.3 野菜雑学・難問クイズ";
+      } else if (distance > 1000 || score > 3000) {
+        pool = QUIZ_DATABASE.medium;
+        badgeText = "LV.2 何科の野菜クイズ";
+      }
+
+      // Pick random question
+      const q = pool[Math.floor(Math.random() * pool.length)];
+      currentQuizData = q;
+
+      document.getElementById('quiz-level-badge').textContent = badgeText;
+      document.getElementById('quiz-emoji').textContent = q.emoji;
+      document.getElementById('quiz-question').textContent = q.question;
+
+      const optionsContainer = document.getElementById('quiz-options');
+      optionsContainer.innerHTML = '';
+      document.getElementById('quiz-feedback').classList.add('hidden');
+
+      q.options.forEach((optText, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl border border-slate-700 hover:border-emerald-400 transition text-sm flex items-center justify-between group';
+        btn.innerHTML = `
+          <span><span class="text-emerald-400 font-orbitron mr-2">${index + 1}.</span> ${optText}</span>
+          <i class="fa-solid fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition text-emerald-400"></i>
+        `;
+        btn.addEventListener('click', () => handleQuizAnswer(index));
+        optionsContainer.appendChild(btn);
+      });
+
+      overlayQuiz.classList.remove('hidden');
+    }
+
+    function handleQuizAnswer(selectedIndex) {
+      const feedbackBox = document.getElementById('quiz-feedback');
+      const titleEl = document.getElementById('quiz-result-title');
+      const detailEl = document.getElementById('quiz-result-detail');
+      const btnContinue = document.getElementById('btn-quiz-continue');
+
+      // Disable option buttons
+      const optionBtns = document.querySelectorAll('#quiz-options button');
+      optionBtns.forEach(btn => btn.disabled = true);
+
+      if (selectedIndex === currentQuizData.answer) {
+        // CORRECT ANSWER
+        audio.playCorrect();
+        titleEl.className = 'text-xl font-black text-emerald-400 mb-1';
+        titleEl.innerHTML = '<i class="fa-solid fa-circle-check mr-2"></i> 正解！壁を粉砕！';
+        detailEl.textContent = currentQuizData.detail;
+
+        btnContinue.onclick = () => {
+          overlayQuiz.classList.add('hidden');
+          isQuizActive = false;
+          // Successful Smash!
+          audio.playSmash();
+          createExplosion(currentCollidedObstacle.x, currentCollidedObstacle.y, '#10b981', 30);
+          triggerShake(15, 0.3);
+
+          comboCount++;
+          comboTimer = 3.0;
+          const mult = 1 + (comboCount * 0.2);
+          const gainedScore = Math.floor(500 * mult * playerData.upgrades.mult * (1 + playerData.upgrades.ram * 0.2));
+          score += gainedScore;
+          smashesInRun++;
+          playerData.totalSmashes++;
+
+          coinsEarned += 20;
+          playerData.totalCoins += 20;
+
+          nitro = Math.min(100, nitro + (25 * playerData.upgrades.nitro));
+          speed += 20;
+
+          hudCombo.textContent = comboCount;
+          hudComboBadge.classList.remove('hidden');
+
+          // Remove smashed obstacle
+          obstacles = obstacles.filter(o => o !== currentCollidedObstacle);
+          lastTime = performance.now();
+        };
+
+      } else {
+        // WRONG ANSWER
+        audio.playWrong();
+        lives--;
+        updateLivesUI();
+        triggerShake(20, 0.4);
+
+        titleEl.className = 'text-xl font-black text-red-500 mb-1';
+        titleEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-2"></i> 不正解...！';
+        detailEl.textContent = currentQuizData.detail;
+
+        btnContinue.onclick = () => {
+          overlayQuiz.classList.add('hidden');
+          isQuizActive = false;
+
+          if (lives <= 0) {
+            gameOver();
+            return;
+          }
+
+          // Damage Penalty & Continue
+          speed *= 0.4;
+          addFloatingText("CRASH! DAMAGE!", playerX, playerY - 30, '#ef4444');
+          obstacles = obstacles.filter(o => o !== currentCollidedObstacle);
+          lastTime = performance.now();
+        };
+      }
+
+      feedbackBox.classList.remove('hidden');
+    }
+
+    function createExplosion(x, y, color, count = 25) {
       for (let i = 0; i < count; i++) {
         const angle = Math.random() * Math.PI * 2;
         const spd = Math.random() * 12 + 4;
@@ -767,7 +998,7 @@
           y: y,
           vx: Math.cos(angle) * spd,
           vy: Math.sin(angle) * spd - (speed * 0.05),
-          size: Math.random() * 8 + 3,
+          size: Math.random() * 8 + 4,
           color: color,
           life: 1.0,
           decay: Math.random() * 0.04 + 0.02
@@ -776,15 +1007,11 @@
     }
 
     function addFloatingText(text, x, y, color = '#f59e0b') {
-      floatingTexts.push({
-        text, x, y, color,
-        life: 1.0,
-        vy: -2
-      });
+      floatingTexts.push({ text, x, y, color, life: 1.0, vy: -2 });
     }
 
     // -------------------------------------------------------------
-    // GAME LOOP & UPDATES
+    // GAME LOOP
     // -------------------------------------------------------------
     let lastTime = 0;
     let spawnTimer = 0;
@@ -794,14 +1021,15 @@
       const dt = (time - lastTime) / 1000;
       lastTime = time;
 
-      update(dt);
-      render();
+      if (!isQuizActive) {
+        update(dt);
+        render();
+      }
 
       requestAnimationFrame(gameLoop);
     }
 
     function update(dt) {
-      // Speed & Nitro Physics
       let currentMaxSpeed = baseMaxSpeed;
       if (isNitroActive) {
         currentMaxSpeed *= 1.6;
@@ -811,42 +1039,35 @@
           isNitroActive = false;
         }
       } else if (nitro < 100) {
-        // Natural small regen
-        nitro += 2 * dt;
+        nitro += 3 * dt;
       }
 
-      // Smooth accelerate
       if (speed < currentMaxSpeed) {
-        speed += 60 * dt;
+        speed += 50 * dt;
       } else {
-        speed -= 40 * dt;
+        speed -= 30 * dt;
       }
 
-      // UI speed lines indicator
       speedOverlay.style.opacity = Math.max(0, (speed - 150) / 200);
 
-      // Distance & Score
       distance += (speed * dt);
       score += Math.floor((speed * dt * 0.5) * (playerData.upgrades.mult * 0.5 + 0.5));
 
-      // Smooth horizontal vehicle shift
       playerX += (targetX - playerX) * 15 * dt;
 
-      // Move Road Markers
       roadMarkers.forEach(m => {
         m.y += speed * 2.5 * dt;
         if (m.y > canvas.height) m.y = -50;
       });
 
-      // Obstacle Spawner Logic
+      // Spawn Obstacles
       spawnTimer -= dt;
       if (spawnTimer <= 0) {
         spawnObstacle();
-        const spawnInterval = Math.max(0.6, 2.2 - (speed / 180));
+        const spawnInterval = Math.max(1.2, 3.0 - (speed / 150));
         spawnTimer = spawnInterval;
       }
 
-      // Combo Decay Timer
       if (comboCount > 0) {
         comboTimer -= dt;
         if (comboTimer <= 0) {
@@ -855,87 +1076,26 @@
         }
       }
 
-      // Player Smash Power calculation
-      const baseRamPower = playerData.upgrades.ram * 1.5;
-      const speedMultiplier = (speed / 100);
-      const nitroMultiplier = isNitroActive ? 2.5 : 1.0;
-      const playerRamPower = baseRamPower * speedMultiplier * nitroMultiplier;
-
-      // Update Obstacles & Collision Check
+      // Check Obstacle Collisions
       for (let i = obstacles.length - 1; i >= 0; i--) {
         const obs = obstacles[i];
         obs.y += speed * 2.2 * dt;
 
-        // Collision Check with Vehicle
         const distY = Math.abs(obs.y - playerY);
         const distX = Math.abs(obs.x - playerX);
 
-        if (distY < 40 && distX < (obs.width / 2 + 20)) {
-          // SMASH COLLISION
-          if (playerRamPower >= obs.durability) {
-            // SUCCESSFUL SMASH!
-            audio.playSmash(obs.durability);
-            createExplosion(obs.x, obs.y, obs.color, 25);
-            triggerShake(12 * obs.durability, 0.25);
-
-            // Calculate Score & Coins
-            comboCount++;
-            comboTimer = 2.5; // Reset combo timer
-            const mult = 1 + (comboCount * 0.2);
-            const gainedScore = Math.floor(obs.score * mult * playerData.upgrades.mult);
-            score += gainedScore;
-            smashesInRun++;
-            playerData.totalSmashes++;
-
-            if (obs.coins > 0) {
-              coinsEarned += obs.coins;
-              playerData.totalCoins += obs.coins;
-              audio.playCoin();
-              addFloatingText(`+${obs.coins} COINS!`, obs.x, obs.y, '#eab308');
-            } else {
-              addFloatingText(`SMASH! +${gainedScore}`, obs.x, obs.y, obs.color);
-            }
-
-            // Nitro Recharge Reward
-            nitro = Math.min(100, nitro + (15 * playerData.upgrades.nitro));
-
-            // Speed Bump Reward
-            speed += 15;
-
-            // HUD Combo UI
-            hudCombo.textContent = comboCount;
-            hudComboBadge.classList.remove('hidden');
-
-            // Remove destroyed obstacle
-            obstacles.splice(i, 1);
-            continue;
-          } else {
-            // FAILED SMASH (Vehicle loses massive speed!)
-            audio.playSmash(0.5);
-            triggerShake(20, 0.4);
-            createExplosion(playerX, playerY, '#ef4444', 30);
-            speed *= 0.3; // Huge speed drop
-            addFloatingText("CRASH! SPEED DOWN!", playerX, playerY - 30, '#ef4444');
-
-            // Game Over if speed drops below threshold
-            if (speed < 40) {
-              gameOver();
-              return;
-            }
-
-            // Remove obstacle
-            obstacles.splice(i, 1);
-            continue;
-          }
+        if (distY < 35 && distX < (obs.width / 2 + 15)) {
+          // TRIGGER QUIZ MODAL
+          openQuizModal(obs);
+          return;
         }
 
-        // Remove out-of-screen obstacles
         if (obs.y > canvas.height + 100) {
           obstacles.splice(i, 1);
         }
       }
 
-      // Update Particles
+      // Particles
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         p.x += p.vx;
@@ -944,7 +1104,7 @@
         if (p.life <= 0) particles.splice(i, 1);
       }
 
-      // Update Floating Texts
+      // Floating Texts
       for (let i = floatingTexts.length - 1; i >= 0; i--) {
         const ft = floatingTexts[i];
         ft.y += ft.vy;
@@ -952,19 +1112,17 @@
         if (ft.life <= 0) floatingTexts.splice(i, 1);
       }
 
-      // Update HUD Elements
       hudSpeed.textContent = Math.floor(speed);
       hudScore.textContent = score.toLocaleString();
       hudNitroFill.style.width = `${nitro}%`;
     }
 
     // -------------------------------------------------------------
-    // RENDERING / DRAWING
+    // RENDERING
     // -------------------------------------------------------------
     function render() {
       ctx.save();
 
-      // Screen Shake Transform
       if (shakeDuration > 0) {
         shakeDuration -= 0.016;
         const dx = (Math.random() - 0.5) * shakeIntensity;
@@ -972,11 +1130,9 @@
         ctx.translate(dx, dy);
       }
 
-      // Clear Canvas
       ctx.fillStyle = '#090d16';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw Highway Road
       const roadWidth = canvas.width * 0.7;
       const leftBound = (canvas.width - roadWidth) / 2;
 
@@ -984,13 +1140,13 @@
       ctx.fillStyle = '#1e293b';
       ctx.fillRect(leftBound, 0, roadWidth, canvas.height);
 
-      // Road Borders
-      ctx.fillStyle = '#ef4444';
+      // Borders
+      ctx.fillStyle = '#10b981';
       ctx.fillRect(leftBound - 8, 0, 8, canvas.height);
       ctx.fillRect(leftBound + roadWidth, 0, 8, canvas.height);
 
       // Lane Markers
-      ctx.strokeStyle = '#475569';
+      ctx.strokeStyle = '#334155';
       ctx.lineWidth = 4;
       ctx.setLineDash([30, 30]);
 
@@ -1005,35 +1161,36 @@
         ctx.lineTo(lane2X, m.y + 40);
         ctx.stroke();
       });
-      ctx.setLineDash([]); // Reset line dash
+      ctx.setLineDash([]);
 
-      // Draw Obstacles
+      // Draw Obstacle Walls
       obstacles.forEach(obs => {
         ctx.save();
-        ctx.shadowColor = obs.color;
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = obs.color;
+        ctx.shadowColor = '#10b981';
+        ctx.shadowBlur = 12;
 
-        // Draw Block
         const rx = obs.x - obs.width / 2;
+        ctx.fillStyle = '#065f46';
         ctx.beginPath();
         ctx.roundRect(rx, obs.y, obs.width, obs.height, 8);
         ctx.fill();
 
-        // Inner pattern/text
-        ctx.fillStyle = '#0f172a';
-        ctx.font = '900 12px Orbitron, sans-serif';
+        ctx.strokeStyle = '#34d399';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 13px Orbitron, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(obs.type, obs.x, obs.y + obs.height / 2 + 4);
+        ctx.fillText('VEGE WALL ❓', obs.x, obs.y + obs.height / 2 + 5);
 
         ctx.restore();
       });
 
-      // Draw Vehicle (Armored Ram Truck)
+      // Draw Vehicle
       ctx.save();
       ctx.translate(playerX, playerY);
 
-      // Nitro Exhaust Flame
       if (isNitroActive || speed > 220) {
         ctx.fillStyle = '#f59e0b';
         ctx.beginPath();
@@ -1043,21 +1200,19 @@
         ctx.fill();
       }
 
-      // Vehicle Shadow
       ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
       ctx.beginPath();
       ctx.ellipse(0, 15, 25, 12, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Body Base
-      ctx.fillStyle = isNitroActive ? '#dc2626' : '#2563eb';
-      ctx.shadowColor = isNitroActive ? '#f87171' : '#60a5fa';
+      ctx.fillStyle = isNitroActive ? '#dc2626' : '#10b981';
+      ctx.shadowColor = isNitroActive ? '#f87171' : '#34d399';
       ctx.shadowBlur = 15;
       ctx.beginPath();
       ctx.roundRect(-20, -35, 40, 60, 10);
       ctx.fill();
 
-      // Front Ram Bumper (Spikes)
+      // Front Bumper
       ctx.fillStyle = '#f59e0b';
       ctx.beginPath();
       ctx.moveTo(-22, -35);
@@ -1076,7 +1231,7 @@
 
       ctx.restore();
 
-      // Draw Particles
+      // Particles
       particles.forEach(p => {
         ctx.save();
         ctx.globalAlpha = p.life;
@@ -1085,7 +1240,7 @@
         ctx.restore();
       });
 
-      // Draw Floating Text Callouts
+      // Floating Texts
       floatingTexts.forEach(ft => {
         ctx.save();
         ctx.globalAlpha = Math.max(0, ft.life);
@@ -1100,14 +1255,13 @@
     }
 
     // -------------------------------------------------------------
-    // GAME OVER & DATA PERSISTENCE
+    // GAME OVER
     // -------------------------------------------------------------
     function gameOver() {
       isPlaying = false;
       hud.classList.add('hidden');
       speedOverlay.style.opacity = '0';
 
-      // Check High Score
       let isNewHigh = false;
       if (score > playerData.highScore) {
         playerData.highScore = score;
@@ -1115,7 +1269,7 @@
       }
 
       document.getElementById('go-score').textContent = score.toLocaleString();
-      document.getElementById('go-smashes').textContent = `${smashesInRun} 個`;
+      document.getElementById('go-smashes').textContent = `${smashesInRun} 回`;
       document.getElementById('go-coins').textContent = `+${coinsEarned} G`;
 
       const goNewHigh = document.getElementById('go-newhigh');
@@ -1126,8 +1280,6 @@
       }
 
       overlayGameOver.classList.remove('hidden');
-
-      // Save to Firebase Cloud Firestore
       saveUserData();
     }
 
