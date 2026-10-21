@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>SMASH RUNNER - 障害物を加速粉砕せよ！</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: #0b0f19;
+      color: #ffffff;
+      overflow-x: hidden;
+      touch-action: manipulation;
+    }
+    .font-orbitron {
+      font-family: 'Orbitron', sans-serif;
+    }
+    /* Dynamic speed lines overlay */
+    .speed-lines {
+      background: radial-gradient(circle, transparent 40%, rgba(255,255,255,0.15) 100%);
+      pointer-events: none;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #111827;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #ef4444;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between relative bg-slate-950 text-white select-none">
+
+  <!-- TOP HEADER / NAV BAR -->
+  <header class="w-full max-w-5xl px-4 py-3 flex items-center justify-between border-b border-slate-800 bg-slate-900/80 backdrop-blur z-20">
+    <div class="flex items-center space-x-3">
+      <div class="w-10 h-10 bg-gradient-to-tr from-red-600 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-red-500/30">
+        <i class="fa-solid fa-car-burst text-white text-xl"></i>
+      </div>
+      <div>
+        <h1 class="text-xl font-black font-orbitron tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-red-500 via-amber-400 to-yellow-300">
+          SMASH RUNNER
+        </h1>
+        <p class="text-xs text-slate-400">避けるな、加速して打ち砕け！</p>
+      </div>
+    </div>
+
+    <!-- USER AUTH UI -->
+    <div id="auth-container" class="flex items-center space-x-3">
+      <!-- Loading Indicator -->
+      <div id="auth-loading" class="flex items-center space-x-2 text-slate-400 text-sm">
+        <i class="fa-solid fa-circle-notch animate-spin text-amber-400"></i>
+        <span>認証確認中...</span>
+      </div>
+
+      <!-- Logged Out View -->
+      <button id="btn-login" class="hidden flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95 border border-indigo-400/30">
+        <i class="fa-brands fa-google text-base"></i>
+        <span>Googleでログイン</span>
+      </button>
+
+      <!-- Logged In View -->
+      <div id="user-profile" class="hidden flex items-center space-x-3 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
+        <img id="user-avatar" src="" alt="Avatar" class="w-8 h-8 rounded-full border border-amber-400">
+        <div class="hidden sm:block text-left">
+          <p id="user-name" class="text-xs font-bold text-slate-200 truncate max-w-[100px]"></p>
+          <span class="text-[10px] text-emerald-400 flex items-center">
+            <i class="fa-solid fa-cloud-arrow-up mr-1"></i> クラウド同期完了
+          </span>
+        </div>
+        <button id="btn-logout" class="text-slate-400 hover:text-red-400 p-1.5 transition" title="ログアウト">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="w-full max-w-5xl flex-1 flex flex-col items-center justify-center p-2 sm:p-4 relative w-full">
+
+    <!-- GAME CANVAS CONTAINER -->
+    <div class="relative w-full aspect-[16/9] max-h-[70vh] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border-2 border-slate-800 flex items-center justify-center">
+      
+      <!-- HTML5 Canvas -->
+      <canvas id="gameCanvas" class="w-full h-full block bg-slate-950 cursor-pointer"></canvas>
+
+      <!-- SPEED LINES OVERLAY -->
+      <div id="speed-overlay" class="absolute inset-0 speed-lines opacity-0 transition-opacity duration-300 pointer-events-none"></div>
+
+      <!-- IN-GAME HUD OVERLAY -->
+      <div id="hud" class="absolute inset-x-0 top-0 p-4 flex justify-between items-start pointer-events-none hidden">
+        <!-- Speed & Nitro -->
+        <div class="flex flex-col space-y-2">
+          <!-- Speed Gauge -->
+          <div class="bg-slate-900/80 backdrop-blur px-4 py-2 rounded-xl border border-slate-700/50 flex items-baseline space-x-2">
+            <span class="text-xs text-slate-400 font-bold">SPEED</span>
+            <span id="hud-speed" class="text-2xl font-black font-orbitron text-amber-400">0</span>
+            <span class="text-xs font-bold text-amber-500">KM/H</span>
+          </div>
+          <!-- Nitro Bar -->
+          <div class="w-36 sm:w-48 bg-slate-950/80 rounded-full h-3 p-0.5 border border-slate-700">
+            <div id="hud-nitro-fill" class="bg-gradient-to-r from-amber-500 to-red-500 h-full rounded-full transition-all duration-75 w-0 shadow-lg shadow-red-500/50"></div>
+          </div>
+        </div>
+
+        <!-- Combo & Score -->
+        <div class="flex flex-col items-end space-y-1">
+          <div class="bg-slate-900/80 backdrop-blur px-4 py-2 rounded-xl border border-slate-700/50 text-right">
+            <span class="text-[10px] text-slate-400 font-bold block">SCORE</span>
+            <span id="hud-score" class="text-2xl font-black font-orbitron text-white">0</span>
+          </div>
+          <div id="hud-combo-badge" class="hidden bg-gradient-to-r from-red-600 to-orange-500 text-white font-black font-orbitron text-xs px-3 py-1 rounded-full animate-bounce shadow-lg shadow-red-500/50">
+            <span id="hud-combo">1</span>x SMASH COMBO!
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN MENU OVERLAY -->
+      <div id="overlay-menu" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-10">
+        <h2 class="text-4xl sm:text-6xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-amber-400 to-yellow-300 drop-shadow-lg mb-2">
+          CRASH & SMASH
+        </h2>
+        <p class="text-slate-300 max-w-md text-sm sm:text-base mb-6">
+          障壁を連続粉砕してスピード上限を突破せよ！<br>ニトロ満タンで全てを打ち砕く「OVERDRIVE」発動！
+        </p>
+
+        <!-- Stats Quick View -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-md mb-6">
+          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 block">最高スコア</span>
+            <span id="stat-highscore" class="text-xl font-black font-orbitron text-amber-400">0</span>
+          </div>
+          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
+            <span class="text-xs text-slate-400 block">所持コイン</span>
+            <span id="stat-coins" class="text-xl font-black font-orbitron text-yellow-400">0</span>
+          </div>
+          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 col-span-2 sm:col-span-1">
+            <span class="text-xs text-slate-400 block">累計粉砕数</span>
+            <span id="stat-smashes" class="text-xl font-black font-orbitron text-red-400">0</span>
+          </div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 w-full max-w-xs sm:max-w-md">
+          <button id="btn-start" class="flex-1 bg-gradient-to-r from-red-600 via-amber-500 to-yellow-500 hover:from-red-500 hover:to-yellow-400 text-slate-950 font-black font-orbitron text-lg py-3 px-6 rounded-xl shadow-xl shadow-red-500/20 transform transition hover:-translate-y-0.5 active:translate-y-0">
+            <i class="fa-solid fa-play mr-2"></i> START GAME
+          </button>
+          <button id="btn-shop" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-xl border border-slate-700 transition flex items-center justify-center space-x-2">
+            <i class="fa-solid fa-wrench text-amber-400"></i>
+            <span>強化ショップ</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- GAME OVER OVERLAY -->
+      <div id="overlay-gameover" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-10 hidden">
+        <div class="w-16 h-16 bg-red-600/20 text-red-500 rounded-2xl flex items-center justify-center text-3xl mb-3 border border-red-500/30">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <h3 class="text-3xl font-black font-orbitron text-red-500 mb-1">CRASH & STOP!</h3>
+        <p class="text-slate-400 text-xs mb-6">スピード失速によりマシン停止</p>
+
+        <div class="bg-slate-900/90 p-5 rounded-2xl border border-slate-800 w-full max-w-xs space-y-3 mb-6">
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-slate-400">獲得スコア</span>
+            <span id="go-score" class="font-black font-orbitron text-amber-400 text-lg">0</span>
+          </div>
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-slate-400">粉砕数</span>
+            <span id="go-smashes" class="font-bold text-red-400">0 個</span>
+          </div>
+          <div class="flex justify-between items-center text-sm">
+            <span class="text-slate-400">獲得コイン</span>
+            <span id="go-coins" class="font-bold text-yellow-400">+0 G</span>
+          </div>
+          <div id="go-newhigh" class="hidden text-center bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold py-1.5 rounded-xl text-xs mt-2 animate-pulse">
+            <i class="fa-solid fa-trophy mr-1"></i> NEW HIGH SCORE!
+          </div>
+        </div>
+
+        <button id="btn-restart" class="w-full max-w-xs bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-slate-950 font-black font-orbitron py-3 px-6 rounded-xl shadow-lg transition">
+          <i class="fa-solid fa-rotate-right mr-2"></i> RETRY
+        </button>
+      </div>
+
+    </div>
+
+    <!-- TOUCH CONTROLS FOR MOBILE -->
+    <div class="w-full max-w-5xl grid grid-cols-3 gap-2 mt-3 sm:hidden">
+      <button id="btn-touch-left" class="bg-slate-800 active:bg-slate-700 py-4 rounded-xl text-xl font-bold border border-slate-700 flex items-center justify-center">
+        <i class="fa-solid fa-arrow-left"></i>
+      </button>
+      <button id="btn-touch-nitro" class="bg-gradient-to-r from-red-600 to-amber-500 text-white py-4 rounded-xl font-black font-orbitron text-sm border border-red-400 shadow-md flex items-center justify-center space-x-1">
+        <i class="fa-solid fa-bolt"></i>
+        <span>NITRO</span>
+      </button>
+      <button id="btn-touch-right" class="bg-slate-800 active:bg-slate-700 py-4 rounded-xl text-xl font-bold border border-slate-700 flex items-center justify-center">
+        <i class="fa-solid fa-arrow-right"></i>
+      </button>
+    </div>
+
+  </main>
+
+  <!-- UPGRADE SHOP MODAL -->
+  <div id="modal-shop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 relative shadow-2xl">
+      <button id="btn-close-shop" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2">
+        <i class="fa-solid fa-xmark text-xl"></i>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-6">
+        <div class="p-3 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
+          <i class="fa-solid fa-wrench text-xl"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-black font-orbitron text-white">GARAGE & UPGRADES</h3>
+          <p class="text-xs text-slate-400">コインを消費してマシン性能を強化</p>
+        </div>
+      </div>
+
+      <!-- Coin Balance -->
+      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center mb-4">
+        <span class="text-xs text-slate-400">現在の所持コイン</span>
+        <span id="shop-coin-balance" class="text-xl font-black font-orbitron text-yellow-400">0 G</span>
+      </div>
+
+      <!-- Upgrade Cards List -->
+      <div class="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+
+        <!-- Ram Power -->
+        <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
+          <div>
+            <h4 class="text-sm font-bold text-white flex items-center">
+              <i class="fa-solid fa-shield-halved text-red-400 mr-2"></i> 粉砕力 (Ram Power)
+            </h4>
+            <p class="text-[11px] text-slate-400">高耐久障害物を打ち砕く威力向上</p>
+            <p id="level-ram" class="text-xs font-bold text-amber-400 mt-1">Lv. 1</p>
+          </div>
+          <button id="btn-upgrade-ram" class="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-bold py-2 px-3 rounded-lg shadow hover:brightness-110 disabled:opacity-50">
+            <span id="cost-ram">100 G</span>
+          </button>
+        </div>
+
+        <!-- Max Speed -->
+        <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
+          <div>
+            <h4 class="text-sm font-bold text-white flex items-center">
+              <i class="fa-solid fa-gauge-high text-blue-400 mr-2"></i> 最高速度 (Max Speed)
+            </h4>
+            <p class="text-[11px] text-slate-400">通常・ニトロ時の限界スピード上昇</p>
+            <p id="level-speed" class="text-xs font-bold text-amber-400 mt-1">Lv. 1</p>
+          </div>
+          <button id="btn-upgrade-speed" class="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-bold py-2 px-3 rounded-lg shadow hover:brightness-110 disabled:opacity-50">
+            <span id="cost-speed">150 G</span>
+          </button>
+        </div>
+
+        <!-- Nitro Recharge -->
+        <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
+          <div>
+            <h4 class="text-sm font-bold text-white flex items-center">
+              <i class="fa-solid fa-bolt text-amber-400 mr-2"></i> ニトロ効率 (Nitro Boost)
+            </h4>
+            <p class="text-[11px] text-slate-400">粉砕時のニトロゲージ回復率アップ</p>
+            <p id="level-nitro" class="text-xs font-bold text-amber-400 mt-1">Lv. 1</p>
+          </div>
+          <button id="btn-upgrade-nitro" class="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-bold py-2 px-3 rounded-lg shadow hover:brightness-110 disabled:opacity-50">
+            <span id="cost-nitro">200 G</span>
+          </button>
+        </div>
+
+        <!-- Score Multiplier -->
+        <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
+          <div>
+            <h4 class="text-sm font-bold text-white flex items-center">
+              <i class="fa-solid fa-star text-purple-400 mr-2"></i> スコア倍率 (Score Bonus)
+            </h4>
+            <p class="text-[11px] text-slate-400">走行・粉砕で得られるスコアを底上げ</p>
+            <p id="level-mult" class="text-xs font-bold text-amber-400 mt-1">Lv. 1</p>
+          </div>
+          <button id="btn-upgrade-mult" class="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-bold py-2 px-3 rounded-lg shadow hover:brightness-110 disabled:opacity-50">
+            <span id="cost-mult">250 G</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER CONTROLS GUIDE -->
+  <footer class="w-full max-w-5xl py-3 px-4 text-center text-xs text-slate-500 border-t border-slate-900">
+    <div class="hidden sm:flex justify-center items-center space-x-6">
+      <span><kbd class="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono">A</kbd> / <kbd class="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono">D</kbd> or <kbd class="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono">←</kbd> <kbd class="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono">→</kbd> : レーン移動</span>
+      <span><kbd class="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono">Space</kbd> : ニトロダッシュ発動</span>
+    </div>
+  </footer>
+
+  <!-- SOUND SYNTHESIZER (Web Audio API) -->
+  <script>
+    class SoundSynth {
+      constructor() {
+        this.ctx = null;
+      }
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+      }
+      playSmash(durability = 1) {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        
+        // Noise buffer for impact crunch
+        const bufferSize = this.ctx.sampleRate * 0.25;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+        
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(800 * durability, now);
+        filter.frequency.exponentialRampToValueAtTime(100, now + 0.2);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.8, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+        noise.start(now);
+
+        // Low pitch boom synth
+        const osc = this.ctx.createOscillator();
+        const oscGain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(150, now);
+        osc.frequency.exponentialRampToValueAtTime(30, now + 0.2);
+        oscGain.gain.setValueAtTime(0.5, now);
+        oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+        osc.connect(oscGain);
+        oscGain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      }
+
+      playNitro() {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.3);
+        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
+      }
+
+      playCoin() {
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(987.77, now); // B5
+        osc.frequency.setValueAtTime(1318.51, now + 0.08); // E6
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      }
+    }
+    const audio = new SoundSynth();
+  </script>
+
+  <!-- FIREBASE & GAME LOGIC -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, 
+      GoogleAuthProvider, 
+      signInWithPopup, 
+      signOut, 
+      onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      doc, 
+      getDoc, 
+      setDoc, 
+      updateDoc 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // -------------------------------------------------------------
+    // Firebase Setup
+    // -------------------------------------------------------------
+    const firebaseConfig = {
+      apiKey: "AIzaSyAeJF5n56TtA4WEU7cZi_DEpKitsMu0tUs",
+      authDomain: "game-80e27.firebaseapp.com",
+      projectId: "game-80e27",
+      storageBucket: "game-80e27.firebasestorage.app",
+      messagingSenderId: "592901013181",
+      appId: "1:592901013181:web:26a8b853e6aa27de6701d4"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const googleProvider = new GoogleAuthProvider();
+
+    // Player State Data
+    let currentUser = null;
+    let playerData = {
+      highScore: 0,
+      totalCoins: 0,
+      totalSmashes: 0,
+      upgrades: {
+        ram: 1,
+        speed: 1,
+        nitro: 1,
+        mult: 1
+      }
+    };
+
+    // DOM Elements
+    const authLoading = document.getElementById('auth-loading');
+    const btnLogin = document.getElementById('btn-login');
+    const btnLogout = document.getElementById('btn-logout');
+    const userProfile = document.getElementById('user-profile');
+    const userAvatar = document.getElementById('user-avatar');
+    const userName = document.getElementById('user-name');
+
+    const statHighScore = document.getElementById('stat-highscore');
+    const statCoins = document.getElementById('stat-coins');
+    const statSmashes = document.getElementById('stat-smashes');
+
+    const overlayMenu = document.getElementById('overlay-menu');
+    const overlayGameOver = document.getElementById('overlay-gameover');
+    const hud = document.getElementById('hud');
+    const hudSpeed = document.getElementById('hud-speed');
+    const hudScore = document.getElementById('hud-score');
+    const hudNitroFill = document.getElementById('hud-nitro-fill');
+    const hudComboBadge = document.getElementById('hud-combo-badge');
+    const hudCombo = document.getElementById('hud-combo');
+    const speedOverlay = document.getElementById('speed-overlay');
+
+    const modalShop = document.getElementById('modal-shop');
+    const shopCoinBalance = document.getElementById('shop-coin-balance');
+
+    // -------------------------------------------------------------
+    // Firebase Auth Handler
+    // -------------------------------------------------------------
+    btnLogin.addEventListener('click', async () => {
+      try {
+        await signInWithPopup(auth, googleProvider);
+      } catch (err) {
+        console.error("Login failed:", err);
+        alert("Googleログインに失敗しました。ポップアップがブロックされていないか確認してください。");
+      }
+    });
+
+    btnLogout.addEventListener('click', () => {
+      signOut(auth);
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      authLoading.classList.add('hidden');
+      if (user) {
+        currentUser = user;
+        btnLogin.classList.add('hidden');
+        userProfile.classList.remove('hidden');
+        userAvatar.src = user.photoURL || 'https://via.placeholder.com/32';
+        userName.textContent = user.displayName || 'Player';
+
+        // Load User Data from Firestore
+        await loadUserData(user.uid);
+      } else {
+        currentUser = null;
+        userProfile.classList.add('hidden');
+        btnLogin.classList.remove('hidden');
+        // Reset to default local stats
+        updateUIStats();
+      }
+    });
+
+    // Firestore Functions
+    async function loadUserData(uid) {
+      try {
+        const userRef = doc(db, 'users', uid);
+        const docSnap = await getDoc(userRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          playerData = {
+            highScore: data.highScore || 0,
+            totalCoins: data.totalCoins || 0,
+            totalSmashes: data.totalSmashes || 0,
+            upgrades: {
+              ram: data.upgrades?.ram || 1,
+              speed: data.upgrades?.speed || 1,
+              nitro: data.upgrades?.nitro || 1,
+              mult: data.upgrades?.mult || 1
+            }
+          };
+        } else {
+          // Initialize New User Document
+          await setDoc(userRef, playerData);
+        }
+      } catch (err) {
+        console.error("Error loading user data:", err);
+      }
+      updateUIStats();
+    }
+
+    async function saveUserData() {
+      updateUIStats();
+      if (!currentUser) return;
+      try {
+        const userRef = doc(db, 'users', currentUser.uid);
+        await setDoc(userRef, playerData, { merge: true });
+      } catch (err) {
+        console.error("Error saving data to Cloud:", err);
+      }
+    }
+
+    function updateUIStats() {
+      statHighScore.textContent = playerData.highScore.toLocaleString();
+      statCoins.textContent = playerData.totalCoins.toLocaleString();
+      statSmashes.textContent = playerData.totalSmashes.toLocaleString();
+      shopCoinBalance.textContent = playerData.totalCoins.toLocaleString() + ' G';
+
+      // Shop Items Level & Cost Sync
+      updateShopUI();
+    }
+
+    // -------------------------------------------------------------
+    // UPGRADE SHOP LOGIC
+    // -------------------------------------------------------------
+    const upgradeCosts = {
+      ram: (lvl) => Math.floor(100 * Math.pow(1.6, lvl - 1)),
+      speed: (lvl) => Math.floor(150 * Math.pow(1.6, lvl - 1)),
+      nitro: (lvl) => Math.floor(200 * Math.pow(1.6, lvl - 1)),
+      mult: (lvl) => Math.floor(250 * Math.pow(1.8, lvl - 1))
+    };
+
+    function updateShopUI() {
+      ['ram', 'speed', 'nitro', 'mult'].forEach(key => {
+        const lvl = playerData.upgrades[key];
+        const cost = upgradeCosts[key](lvl);
+        document.getElementById(`level-${key}`).textContent = `Lv. ${lvl}`;
+        document.getElementById(`cost-${key}`).textContent = `${cost.toLocaleString()} G`;
+        document.getElementById(`btn-upgrade-${key}`).disabled = playerData.totalCoins < cost;
+      });
+    }
+
+    function buyUpgrade(key) {
+      const lvl = playerData.upgrades[key];
+      const cost = upgradeCosts[key](lvl);
+      if (playerData.totalCoins >= cost) {
+        playerData.totalCoins -= cost;
+        playerData.upgrades[key] += 1;
+        saveUserData();
+        audio.playCoin();
+      }
+    }
+
+    document.getElementById('btn-shop').addEventListener('click', () => modalShop.classList.remove('hidden'));
+    document.getElementById('btn-close-shop').addEventListener('click', () => modalShop.classList.add('hidden'));
+
+    document.getElementById('btn-upgrade-ram').addEventListener('click', () => buyUpgrade('ram'));
+    document.getElementById('btn-upgrade-speed').addEventListener('click', () => buyUpgrade('speed'));
+    document.getElementById('btn-upgrade-nitro').addEventListener('click', () => buyUpgrade('nitro'));
+    document.getElementById('btn-upgrade-mult').addEventListener('click', () => buyUpgrade('mult'));
+
+    // -------------------------------------------------------------
+    // GAME ENGINE & CANVAS GRAPHICS
+    // -------------------------------------------------------------
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Canvas Sizing
+    function resizeCanvas() {
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // Game Variables
+    let isPlaying = false;
+    let score = 0;
+    let coinsEarned = 0;
+    let smashesInRun = 0;
+    let comboCount = 0;
+    let comboTimer = 0;
+    let distance = 0;
+
+    let lane = 1; // 0: Left, 1: Center, 2: Right
+    let targetX = 0;
+    let playerX = 0;
+    let playerY = 0;
+
+    let speed = 80;
+    let baseMaxSpeed = 220;
+    let nitro = 100;
+    let isNitroActive = false;
+
+    let obstacles = [];
+    let particles = [];
+    let floatingTexts = [];
+    let roadMarkers = [];
+
+    // Screen Shake
+    let shakeDuration = 0;
+    let shakeIntensity = 0;
+
+    function triggerShake(intensity, duration) {
+      shakeIntensity = intensity;
+      shakeDuration = duration;
+    }
+
+    // Lane positioning helper
+    function getLaneX(laneIndex) {
+      const roadWidth = canvas.width * 0.7;
+      const leftBound = (canvas.width - roadWidth) / 2;
+      const laneWidth = roadWidth / 3;
+      return leftBound + laneWidth * laneIndex + laneWidth / 2;
+    }
+
+    // Start Game Initialization
+    function startGame() {
+      audio.init();
+      isPlaying = true;
+      score = 0;
+      coinsEarned = 0;
+      smashesInRun = 0;
+      comboCount = 0;
+      comboTimer = 0;
+      distance = 0;
+      lane = 1;
+
+      // Stats calculated from Upgrades
+      baseMaxSpeed = 200 + (playerData.upgrades.speed * 20);
+      speed = 100;
+      nitro = 100;
+
+      playerX = getLaneX(lane);
+      playerY = canvas.height * 0.78;
+      targetX = playerX;
+
+      obstacles = [];
+      particles = [];
+      floatingTexts = [];
+      roadMarkers = [];
+
+      // Generate road markers
+      for (let i = 0; i < 15; i++) {
+        roadMarkers.push({ y: i * (canvas.height / 10) });
+      }
+
+      overlayMenu.classList.add('hidden');
+      overlayGameOver.classList.add('hidden');
+      hud.classList.remove('hidden');
+
+      lastTime = performance.now();
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Input Controls
+    function moveLeft() {
+      if (lane > 0) {
+        lane--;
+        targetX = getLaneX(lane);
+      }
+    }
+    function moveRight() {
+      if (lane < 2) {
+        lane++;
+        targetX = getLaneX(lane);
+      }
+    }
+    function activateNitro() {
+      if (nitro > 20 && !isNitroActive) {
+        isNitroActive = true;
+        audio.playNitro();
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (!isPlaying) return;
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLeft();
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight();
+      if (e.key === ' ' || e.key === 'ArrowUp') activateNitro();
+    });
+
+    document.getElementById('btn-touch-left').addEventListener('click', moveLeft);
+    document.getElementById('btn-touch-right').addEventListener('click', moveRight);
+    document.getElementById('btn-touch-nitro').addEventListener('click', activateNitro);
+
+    document.getElementById('btn-start').addEventListener('click', startGame);
+    document.getElementById('btn-restart').addEventListener('click', startGame);
+
+    // -------------------------------------------------------------
+    // Obstacle & Particle Spawners
+    // -------------------------------------------------------------
+    const OBSTACLE_TYPES = [
+      { type: 'WOOD', color: '#d97706', durability: 1, score: 100, name: '木製バリケード' },
+      { type: 'GLASS', color: '#38bdf8', durability: 2, score: 250, name: '強化ガラス' },
+      { type: 'CONCRETE', color: '#94a3b8', durability: 4, score: 600, name: 'コンクリート壁' },
+      { type: 'GOLD_BOX', color: '#eab308', durability: 1, score: 500, coins: 50, name: 'ゴールド宝箱' }
+    ];
+
+    function spawnObstacle() {
+      const laneIndex = Math.floor(Math.random() * 3);
+      // Pick random obstacle weighted by current distance
+      const rand = Math.random();
+      let typeObj = OBSTACLE_TYPES[0];
+      if (rand > 0.85) typeObj = OBSTACLE_TYPES[3]; // Gold Box
+      else if (rand > 0.6) typeObj = OBSTACLE_TYPES[2]; // Concrete
+      else if (rand > 0.3) typeObj = OBSTACLE_TYPES[1]; // Glass
+
+      obstacles.push({
+        lane: laneIndex,
+        x: getLaneX(laneIndex),
+        y: -100,
+        width: canvas.width * 0.18,
+        height: 45,
+        type: typeObj.type,
+        color: typeObj.color,
+        durability: typeObj.durability,
+        maxDurability: typeObj.durability,
+        score: typeObj.score,
+        coins: typeObj.coins || 0
+      });
+    }
+
+    function createExplosion(x, y, color, count = 20) {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const spd = Math.random() * 12 + 4;
+        particles.push({
+          x: x,
+          y: y,
+          vx: Math.cos(angle) * spd,
+          vy: Math.sin(angle) * spd - (speed * 0.05),
+          size: Math.random() * 8 + 3,
+          color: color,
+          life: 1.0,
+          decay: Math.random() * 0.04 + 0.02
+        });
+      }
+    }
+
+    function addFloatingText(text, x, y, color = '#f59e0b') {
+      floatingTexts.push({
+        text, x, y, color,
+        life: 1.0,
+        vy: -2
+      });
+    }
+
+    // -------------------------------------------------------------
+    // GAME LOOP & UPDATES
+    // -------------------------------------------------------------
+    let lastTime = 0;
+    let spawnTimer = 0;
+
+    function gameLoop(time) {
+      if (!isPlaying) return;
+      const dt = (time - lastTime) / 1000;
+      lastTime = time;
+
+      update(dt);
+      render();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    function update(dt) {
+      // Speed & Nitro Physics
+      let currentMaxSpeed = baseMaxSpeed;
+      if (isNitroActive) {
+        currentMaxSpeed *= 1.6;
+        nitro -= 40 * dt;
+        if (nitro <= 0) {
+          nitro = 0;
+          isNitroActive = false;
+        }
+      } else if (nitro < 100) {
+        // Natural small regen
+        nitro += 2 * dt;
+      }
+
+      // Smooth accelerate
+      if (speed < currentMaxSpeed) {
+        speed += 60 * dt;
+      } else {
+        speed -= 40 * dt;
+      }
+
+      // UI speed lines indicator
+      speedOverlay.style.opacity = Math.max(0, (speed - 150) / 200);
+
+      // Distance & Score
+      distance += (speed * dt);
+      score += Math.floor((speed * dt * 0.5) * (playerData.upgrades.mult * 0.5 + 0.5));
+
+      // Smooth horizontal vehicle shift
+      playerX += (targetX - playerX) * 15 * dt;
+
+      // Move Road Markers
+      roadMarkers.forEach(m => {
+        m.y += speed * 2.5 * dt;
+        if (m.y > canvas.height) m.y = -50;
+      });
+
+      // Obstacle Spawner Logic
+      spawnTimer -= dt;
+      if (spawnTimer <= 0) {
+        spawnObstacle();
+        const spawnInterval = Math.max(0.6, 2.2 - (speed / 180));
+        spawnTimer = spawnInterval;
+      }
+
+      // Combo Decay Timer
+      if (comboCount > 0) {
+        comboTimer -= dt;
+        if (comboTimer <= 0) {
+          comboCount = 0;
+          hudComboBadge.classList.add('hidden');
+        }
+      }
+
+      // Player Smash Power calculation
+      const baseRamPower = playerData.upgrades.ram * 1.5;
+      const speedMultiplier = (speed / 100);
+      const nitroMultiplier = isNitroActive ? 2.5 : 1.0;
+      const playerRamPower = baseRamPower * speedMultiplier * nitroMultiplier;
+
+      // Update Obstacles & Collision Check
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const obs = obstacles[i];
+        obs.y += speed * 2.2 * dt;
+
+        // Collision Check with Vehicle
+        const distY = Math.abs(obs.y - playerY);
+        const distX = Math.abs(obs.x - playerX);
+
+        if (distY < 40 && distX < (obs.width / 2 + 20)) {
+          // SMASH COLLISION
+          if (playerRamPower >= obs.durability) {
+            // SUCCESSFUL SMASH!
+            audio.playSmash(obs.durability);
+            createExplosion(obs.x, obs.y, obs.color, 25);
+            triggerShake(12 * obs.durability, 0.25);
+
+            // Calculate Score & Coins
+            comboCount++;
+            comboTimer = 2.5; // Reset combo timer
+            const mult = 1 + (comboCount * 0.2);
+            const gainedScore = Math.floor(obs.score * mult * playerData.upgrades.mult);
+            score += gainedScore;
+            smashesInRun++;
+            playerData.totalSmashes++;
+
+            if (obs.coins > 0) {
+              coinsEarned += obs.coins;
+              playerData.totalCoins += obs.coins;
+              audio.playCoin();
+              addFloatingText(`+${obs.coins} COINS!`, obs.x, obs.y, '#eab308');
+            } else {
+              addFloatingText(`SMASH! +${gainedScore}`, obs.x, obs.y, obs.color);
+            }
+
+            // Nitro Recharge Reward
+            nitro = Math.min(100, nitro + (15 * playerData.upgrades.nitro));
+
+            // Speed Bump Reward
+            speed += 15;
+
+            // HUD Combo UI
+            hudCombo.textContent = comboCount;
+            hudComboBadge.classList.remove('hidden');
+
+            // Remove destroyed obstacle
+            obstacles.splice(i, 1);
+            continue;
+          } else {
+            // FAILED SMASH (Vehicle loses massive speed!)
+            audio.playSmash(0.5);
+            triggerShake(20, 0.4);
+            createExplosion(playerX, playerY, '#ef4444', 30);
+            speed *= 0.3; // Huge speed drop
+            addFloatingText("CRASH! SPEED DOWN!", playerX, playerY - 30, '#ef4444');
+
+            // Game Over if speed drops below threshold
+            if (speed < 40) {
+              gameOver();
+              return;
+            }
+
+            // Remove obstacle
+            obstacles.splice(i, 1);
+            continue;
+          }
+        }
+
+        // Remove out-of-screen obstacles
+        if (obs.y > canvas.height + 100) {
+          obstacles.splice(i, 1);
+        }
+      }
+
+      // Update Particles
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
+
+      // Update Floating Texts
+      for (let i = floatingTexts.length - 1; i >= 0; i--) {
+        const ft = floatingTexts[i];
+        ft.y += ft.vy;
+        ft.life -= dt * 1.5;
+        if (ft.life <= 0) floatingTexts.splice(i, 1);
+      }
+
+      // Update HUD Elements
+      hudSpeed.textContent = Math.floor(speed);
+      hudScore.textContent = score.toLocaleString();
+      hudNitroFill.style.width = `${nitro}%`;
+    }
+
+    // -------------------------------------------------------------
+    // RENDERING / DRAWING
+    // -------------------------------------------------------------
+    function render() {
+      ctx.save();
+
+      // Screen Shake Transform
+      if (shakeDuration > 0) {
+        shakeDuration -= 0.016;
+        const dx = (Math.random() - 0.5) * shakeIntensity;
+        const dy = (Math.random() - 0.5) * shakeIntensity;
+        ctx.translate(dx, dy);
+      }
+
+      // Clear Canvas
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw Highway Road
+      const roadWidth = canvas.width * 0.7;
+      const leftBound = (canvas.width - roadWidth) / 2;
+
+      // Road Base
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(leftBound, 0, roadWidth, canvas.height);
+
+      // Road Borders
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(leftBound - 8, 0, 8, canvas.height);
+      ctx.fillRect(leftBound + roadWidth, 0, 8, canvas.height);
+
+      // Lane Markers
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 4;
+      ctx.setLineDash([30, 30]);
+
+      const lane1X = leftBound + roadWidth / 3;
+      const lane2X = leftBound + (roadWidth / 3) * 2;
+
+      roadMarkers.forEach(m => {
+        ctx.beginPath();
+        ctx.moveTo(lane1X, m.y);
+        ctx.lineTo(lane1X, m.y + 40);
+        ctx.moveTo(lane2X, m.y);
+        ctx.lineTo(lane2X, m.y + 40);
+        ctx.stroke();
+      });
+      ctx.setLineDash([]); // Reset line dash
+
+      // Draw Obstacles
+      obstacles.forEach(obs => {
+        ctx.save();
+        ctx.shadowColor = obs.color;
+        ctx.shadowBlur = 10;
+        ctx.fillStyle = obs.color;
+
+        // Draw Block
+        const rx = obs.x - obs.width / 2;
+        ctx.beginPath();
+        ctx.roundRect(rx, obs.y, obs.width, obs.height, 8);
+        ctx.fill();
+
+        // Inner pattern/text
+        ctx.fillStyle = '#0f172a';
+        ctx.font = '900 12px Orbitron, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(obs.type, obs.x, obs.y + obs.height / 2 + 4);
+
+        ctx.restore();
+      });
+
+      // Draw Vehicle (Armored Ram Truck)
+      ctx.save();
+      ctx.translate(playerX, playerY);
+
+      // Nitro Exhaust Flame
+      if (isNitroActive || speed > 220) {
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.moveTo(-12, 25);
+        ctx.lineTo(0, 45 + Math.random() * 15);
+        ctx.lineTo(12, 25);
+        ctx.fill();
+      }
+
+      // Vehicle Shadow
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.beginPath();
+      ctx.ellipse(0, 15, 25, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Body Base
+      ctx.fillStyle = isNitroActive ? '#dc2626' : '#2563eb';
+      ctx.shadowColor = isNitroActive ? '#f87171' : '#60a5fa';
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.roundRect(-20, -35, 40, 60, 10);
+      ctx.fill();
+
+      // Front Ram Bumper (Spikes)
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.moveTo(-22, -35);
+      ctx.lineTo(-12, -48);
+      ctx.lineTo(0, -38);
+      ctx.lineTo(12, -48);
+      ctx.lineTo(22, -35);
+      ctx.closePath();
+      ctx.fill();
+
+      // Windshield
+      ctx.fillStyle = '#0f172a';
+      ctx.beginPath();
+      ctx.roundRect(-14, -20, 28, 16, 4);
+      ctx.fill();
+
+      ctx.restore();
+
+      // Draw Particles
+      particles.forEach(p => {
+        ctx.save();
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(p.x, p.y, p.size, p.size);
+        ctx.restore();
+      });
+
+      // Draw Floating Text Callouts
+      floatingTexts.forEach(ft => {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, ft.life);
+        ctx.font = '900 16px Orbitron, sans-serif';
+        ctx.fillStyle = ft.color;
+        ctx.textAlign = 'center';
+        ctx.fillText(ft.text, ft.x, ft.y);
+        ctx.restore();
+      });
+
+      ctx.restore();
+    }
+
+    // -------------------------------------------------------------
+    // GAME OVER & DATA PERSISTENCE
+    // -------------------------------------------------------------
+    function gameOver() {
+      isPlaying = false;
+      hud.classList.add('hidden');
+      speedOverlay.style.opacity = '0';
+
+      // Check High Score
+      let isNewHigh = false;
+      if (score > playerData.highScore) {
+        playerData.highScore = score;
+        isNewHigh = true;
+      }
+
+      document.getElementById('go-score').textContent = score.toLocaleString();
+      document.getElementById('go-smashes').textContent = `${smashesInRun} 個`;
+      document.getElementById('go-coins').textContent = `+${coinsEarned} G`;
+
+      const goNewHigh = document.getElementById('go-newhigh');
+      if (isNewHigh) {
+        goNewHigh.classList.remove('hidden');
+      } else {
+        goNewHigh.classList.add('hidden');
+      }
+
+      overlayGameOver.classList.remove('hidden');
+
+      // Save to Firebase Cloud Firestore
+      saveUserData();
+    }
+
+  </script>
+</body>
+</html>
