@@ -1,1288 +1,962 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>SMASH RUNNER - 野菜クイズ粉砕ラン</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
-  <!-- Font Awesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <style>
-    body {
-      font-family: 'Noto Sans JP', sans-serif;
-      background-color: #0b0f19;
-      color: #ffffff;
-      overflow-x: hidden;
-      touch-action: manipulation;
-    }
-    .font-orbitron {
-      font-family: 'Orbitron', sans-serif;
-    }
-    /* Dynamic speed lines overlay */
-    .speed-lines {
-      background: radial-gradient(circle, transparent 40%, rgba(255,255,255,0.15) 100%);
-      pointer-events: none;
-    }
-    /* Custom Scrollbar */
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #111827;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #ef4444;
-      border-radius: 3px;
-    }
-    /* Heart Bounce Animation */
-    .heart-anim {
-      animation: heartPulse 1.2s infinite ease-in-out;
-    }
-    @keyframes heartPulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.15); }
-    }
-  </style>
-</head>
-<body class="min-h-screen flex flex-col items-center justify-between relative bg-slate-950 text-white select-none">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Hyper Smash Runner - 野菜クイズ加速粉砕ゲーム</title>
 
-  <!-- TOP HEADER / NAV BAR -->
-  <header class="w-full max-w-5xl px-4 py-3 flex items-center justify-between border-b border-slate-800 bg-slate-900/80 backdrop-blur z-20">
-    <div class="flex items-center space-x-3">
-      <div class="w-10 h-10 bg-gradient-to-tr from-emerald-600 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
-        <i class="fa-solid fa-carrot text-white text-xl"></i>
-      </div>
-      <div>
-        <h1 class="text-xl font-black font-orbitron tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 via-amber-300 to-yellow-300">
-          SMASH RUNNER <span class="text-xs text-emerald-400 font-sans">野菜クイズ編</span>
-        </h1>
-        <p class="text-xs text-slate-400">クイズに答えて壁を加速粉砕せよ！</p>
-      </div>
-    </div>
+    <!-- Tailwind CSS & FontAwesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- USER AUTH UI -->
-    <div id="auth-container" class="flex items-center space-x-3">
-      <!-- Loading Indicator -->
-      <div id="auth-loading" class="flex items-center space-x-2 text-slate-400 text-sm">
-        <i class="fa-solid fa-circle-notch animate-spin text-amber-400"></i>
-        <span>認証確認中...</span>
-      </div>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-      <!-- Logged Out View -->
-      <button id="btn-login" class="hidden flex items-center space-x-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md transition transform active:scale-95 border border-indigo-400/30">
-        <i class="fa-brands fa-google text-base"></i>
-        <span>Googleでログイン</span>
-      </button>
+    <!-- Firebase Modular SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-      <!-- Logged In View -->
-      <div id="user-profile" class="hidden flex items-center space-x-3 bg-slate-800/80 px-3 py-1.5 rounded-xl border border-slate-700">
-        <img id="user-avatar" src="" alt="Avatar" class="w-8 h-8 rounded-full border border-amber-400">
-        <div class="hidden sm:block text-left">
-          <p id="user-name" class="text-xs font-bold text-slate-200 truncate max-w-[100px]"></p>
-          <span class="text-[10px] text-emerald-400 flex items-center">
-            <i class="fa-solid fa-cloud-arrow-up mr-1"></i> クラウド同期完了
-          </span>
-        </div>
-        <button id="btn-logout" class="text-slate-400 hover:text-red-400 p-1.5 transition" title="ログアウト">
-          <i class="fa-solid fa-right-from-bracket"></i>
-        </button>
-      </div>
-    </div>
-  </header>
+        // Firebase Configuration
+        const firebaseConfig = { 
+            apiKey: "AIzaSyAeJF5n56TtA4WEU7cZi_DEpKitsMu0tUs", 
+            authDomain: "game-80e27.firebaseapp.com", 
+            projectId: "game-80e27", 
+            storageBucket: "game-80e27.firebasestorage.app", 
+            messagingSenderId: "592901013181", 
+            appId: "1:592901013181:web:26a8b853e6aa27de6701d4" 
+        };
 
-  <!-- MAIN CONTAINER -->
-  <main class="w-full max-w-5xl flex-1 flex flex-col items-center justify-center p-2 sm:p-4 relative">
+        window.firebaseApp = initializeApp(firebaseConfig);
+        window.firebaseAuth = getAuth(window.firebaseApp);
+        window.firebaseDb = getFirestore(window.firebaseApp);
+        window.googleProvider = new GoogleAuthProvider();
 
-    <!-- GAME CANVAS CONTAINER -->
-    <div class="relative w-full aspect-[16/9] max-h-[70vh] bg-slate-900 rounded-2xl overflow-hidden shadow-2xl border-2 border-slate-800 flex items-center justify-center">
-      
-      <!-- HTML5 Canvas -->
-      <canvas id="gameCanvas" class="w-full h-full block bg-slate-950 cursor-pointer"></canvas>
-
-      <!-- SPEED LINES OVERLAY -->
-      <div id="speed-overlay" class="absolute inset-0 speed-lines opacity-0 transition-opacity duration-300 pointer-events-none"></div>
-
-      <!-- IN-GAME HUD OVERLAY -->
-      <div id="hud" class="absolute inset-x-0 top-0 p-4 flex justify-between items-start pointer-events-none hidden">
-        <!-- Lives & Speed -->
-        <div class="flex flex-col space-y-2">
-          <!-- Lives Indicator -->
-          <div class="bg-slate-900/90 backdrop-blur px-4 py-2 rounded-xl border border-red-500/30 flex items-center space-x-2 shadow-lg">
-            <span class="text-xs text-slate-400 font-bold mr-1">LIFE:</span>
-            <div id="hud-lives" class="flex space-x-1 text-xl text-red-500">
-              <i class="fa-solid fa-heart heart-anim"></i>
-              <i class="fa-solid fa-heart heart-anim"></i>
-              <i class="fa-solid fa-heart heart-anim"></i>
-            </div>
-          </div>
-
-          <!-- Speed Gauge -->
-          <div class="bg-slate-900/80 backdrop-blur px-4 py-2 rounded-xl border border-slate-700/50 flex items-baseline space-x-2">
-            <span class="text-xs text-slate-400 font-bold">SPEED</span>
-            <span id="hud-speed" class="text-2xl font-black font-orbitron text-amber-400">0</span>
-            <span class="text-xs font-bold text-amber-500">KM/H</span>
-          </div>
-
-          <!-- Nitro Bar -->
-          <div class="w-36 sm:w-48 bg-slate-950/80 rounded-full h-3 p-0.5 border border-slate-700">
-            <div id="hud-nitro-fill" class="bg-gradient-to-r from-emerald-500 via-amber-500 to-red-500 h-full rounded-full transition-all duration-75 w-0 shadow-lg shadow-emerald-500/50"></div>
-          </div>
-        </div>
-
-        <!-- Combo & Score -->
-        <div class="flex flex-col items-end space-y-1">
-          <div class="bg-slate-900/80 backdrop-blur px-4 py-2 rounded-xl border border-slate-700/50 text-right">
-            <span class="text-[10px] text-slate-400 font-bold block">SCORE</span>
-            <span id="hud-score" class="text-2xl font-black font-orbitron text-white">0</span>
-          </div>
-          <div id="hud-combo-badge" class="hidden bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-black font-orbitron text-xs px-3 py-1 rounded-full animate-bounce shadow-lg shadow-emerald-500/50">
-            <span id="hud-combo">1</span>x QUIZ SMASH!
-          </div>
-        </div>
-      </div>
-
-      <!-- MAIN MENU OVERLAY -->
-      <div id="overlay-menu" class="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-10">
-        <div class="text-5xl mb-2 animate-bounce">🥕🥦🍅</div>
-        <h2 class="text-4xl sm:text-6xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-amber-300 to-yellow-300 drop-shadow-lg mb-2">
-          VEGE SMASH
-        </h2>
-        <p class="text-slate-300 max-w-md text-sm sm:text-base mb-6">
-          障害物に遭遇したら「野菜クイズ」に正解して壁を粉砕せよ！<br>
-          <span class="text-red-400 font-bold">間違えるとライフ減少（最大3回まで）！</span><br>
-          進むほど「何科の野菜か」など問題が難しくなるぞ！
-        </p>
-
-        <!-- Stats Quick View -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-md mb-6">
-          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-            <span class="text-xs text-slate-400 block">最高スコア</span>
-            <span id="stat-highscore" class="text-xl font-black font-orbitron text-amber-400">0</span>
-          </div>
-          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800">
-            <span class="text-xs text-slate-400 block">所持コイン</span>
-            <span id="stat-coins" class="text-xl font-black font-orbitron text-yellow-400">0</span>
-          </div>
-          <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 col-span-2 sm:col-span-1">
-            <span class="text-xs text-slate-400 block">正解粉砕数</span>
-            <span id="stat-smashes" class="text-xl font-black font-orbitron text-emerald-400">0</span>
-          </div>
-        </div>
-
-        <!-- Buttons -->
-        <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 w-full max-w-xs sm:max-w-md">
-          <button id="btn-start" class="flex-1 bg-gradient-to-r from-emerald-500 via-amber-500 to-yellow-500 hover:from-emerald-400 hover:to-yellow-400 text-slate-950 font-black font-orbitron text-lg py-3 px-6 rounded-xl shadow-xl shadow-emerald-500/20 transform transition hover:-translate-y-0.5 active:translate-y-0">
-            <i class="fa-solid fa-play mr-2"></i> START GAME
-          </button>
-          <button id="btn-shop" class="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-6 rounded-xl border border-slate-700 transition flex items-center justify-center space-x-2">
-            <i class="fa-solid fa-wrench text-amber-400"></i>
-            <span>強化ショップ</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- QUIZ MODAL OVERLAY -->
-      <div id="overlay-quiz" class="absolute inset-0 bg-slate-950/95 backdrop-blur-lg flex flex-col items-center justify-center p-4 z-30 hidden">
-        <div class="w-full max-w-lg bg-slate-900 border-2 border-emerald-500/50 rounded-2xl p-5 shadow-2xl relative flex flex-col items-center">
-          
-          <!-- Difficulty Badge -->
-          <div class="absolute -top-4 bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-black text-xs px-4 py-1 rounded-full uppercase tracking-wider shadow-md">
-            <span id="quiz-level-badge">LV.1 野菜当てクイズ</span>
-          </div>
-
-          <!-- Quiz Vegetable Illustration/Emoji -->
-          <div id="quiz-emoji" class="text-7xl sm:text-8xl my-3 animate-pulse">
-            🥕
-          </div>
-
-          <!-- Question Text -->
-          <h3 id="quiz-question" class="text-lg sm:text-xl font-bold text-center text-white mb-4 max-w-md">
-            この野菜の名前は何でしょう？
-          </h3>
-
-          <!-- Options Grid -->
-          <div id="quiz-options" class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full mb-2">
-            <!-- Dynamically Inserted Buttons -->
-          </div>
-
-          <!-- Answer Feedback Box (Initially Hidden) -->
-          <div id="quiz-feedback" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 mt-2 hidden text-center">
-            <p id="quiz-result-title" class="text-lg font-black mb-1"></p>
-            <p id="quiz-result-detail" class="text-xs sm:text-sm text-slate-300 mb-3"></p>
-            <button id="btn-quiz-continue" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black py-2 rounded-xl transition">
-              次へ進む <i class="fa-solid fa-arrow-right ml-1"></i>
-            </button>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- GAME OVER OVERLAY -->
-      <div id="overlay-gameover" class="absolute inset-0 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-10 hidden">
-        <div class="w-16 h-16 bg-red-600/20 text-red-500 rounded-2xl flex items-center justify-center text-3xl mb-3 border border-red-500/30">
-          <i class="fa-solid fa-skull"></i>
-        </div>
-        <h3 class="text-3xl font-black font-orbitron text-red-500 mb-1">CRASH & STOP!</h3>
-        <p class="text-slate-400 text-xs mb-6">ライフが全滅してマシンがクラッシュしました</p>
-
-        <div class="bg-slate-900/90 p-5 rounded-2xl border border-slate-800 w-full max-w-xs space-y-3 mb-6">
-          <div class="flex justify-between items-center text-sm">
-            <span class="text-slate-400">獲得スコア</span>
-            <span id="go-score" class="font-black font-orbitron text-amber-400 text-lg">0</span>
-          </div>
-          <div class="flex justify-between items-center text-sm">
-            <span class="text-slate-400">正解クイズ数</span>
-            <span id="go-smashes" class="font-bold text-emerald-400">0 回</span>
-          </div>
-          <div class="flex justify-between items-center text-sm">
-            <span class="text-slate-400">獲得コイン</span>
-            <span id="go-coins" class="font-bold text-yellow-400">+0 G</span>
-          </div>
-          <div id="go-newhigh" class="hidden text-center bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold py-1.5 rounded-xl text-xs mt-2 animate-pulse">
-            <i class="fa-solid fa-trophy mr-1"></i> NEW HIGH SCORE!
-          </div>
-        </div>
-
-        <button id="btn-restart" class="w-full max-w-xs bg-gradient-to-r from-emerald-500 to-amber-500 hover:from-emerald-400 hover:to-amber-400 text-slate-950 font-black font-orbitron py-3 px-6 rounded-xl shadow-lg transition">
-          <i class="fa-solid fa-rotate-right mr-2"></i> RETRY
-        </button>
-      </div>
-
-    </div>
-
-    <!-- TOUCH CONTROLS FOR MOBILE -->
-    <div class="w-full max-w-5xl grid grid-cols-3 gap-2 mt-3 sm:hidden">
-      <button id="btn-touch-left" class="bg-slate-800 active:bg-slate-700 py-4 rounded-xl text-xl font-bold border border-slate-700 flex items-center justify-center">
-        <i class="fa-solid fa-arrow-left"></i>
-      </button>
-      <button id="btn-touch-nitro" class="bg-gradient-to-r from-emerald-600 to-amber-500 text-white py-4 rounded-xl font-black font-orbitron text-sm border border-emerald-400 shadow-md flex items-center justify-center space-x-1">
-        <i class="fa-solid fa-bolt"></i>
-        <span>NITRO</span>
-      </button>
-      <button id="btn-touch-right" class="bg-slate-800 active:bg-slate-700 py-4 rounded-xl text-xl font-bold border border-slate-700 flex items-center justify-center">
-        <i class="fa-solid fa-arrow-right"></i>
-      </button>
-    </div>
-
-  </main>
-
-  <!-- UPGRADE SHOP MODAL -->
-  <div id="modal-shop" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-2xl p-6 relative shadow-2xl">
-      <button id="btn-close-shop" class="absolute top-4 right-4 text-slate-400 hover:text-white p-2">
-        <i class="fa-solid fa-xmark text-xl"></i>
-      </button>
-
-      <div class="flex items-center space-x-3 mb-6">
-        <div class="p-3 bg-amber-500/20 text-amber-400 rounded-xl border border-amber-500/30">
-          <i class="fa-solid fa-wrench text-xl"></i>
-        </div>
-        <div>
-          <h3 class="text-xl font-black font-orbitron text-white">GARAGE & UPGRADES</h3>
-          <p class="text-xs text-slate-400">コインを消費してマシン性能を強化</p>
-        </div>
-      </div>
-
-      <!-- Coin Balance -->
-      <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex justify-between items-center mb-4">
-        <span class="text-xs text-slate-400">現在の所持コイン</span>
-        <span id="shop-coin-balance" class="text-xl font-black font-orbitron text-yellow-400">0 G</span>
-      </div>
-
-      <!-- Upgrade Cards List -->
-      <div class="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
-
-        <!-- Ram Power -->
-        <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
-          <div>
-            <h4 class="text-sm font-bold text-white flex items-center">
-              <i class="fa-solid fa-shield-halved text-emerald-400 mr-2"></i> 粉砕ボーナス (Smash Bonus)
-            </h4>
-            <p class="text-[11px] text-slate-400">クイズ正解時の獲得スコア増加</p>
-            <p id="level-ram" class="text-xs font-bold text-amber-400 mt-1">Lv. 1</p>
-          </div>
-          <button id="btn-upgrade-ram" class="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-bold py-2 px-3 rounded-lg shadow hover:brightness-110 disabled:opacity-50">
-            <span id="cost-ram">100 G</span>
-          </button>
-        </div>
-
-        <!-- Max Speed -->
-        <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
-          <div>
-            <h4 class="text-sm font-bold text-white flex items-center">
-              <i class="fa-solid fa-gauge-high text-blue-400 mr-2"></i> 最高速度 (Max Speed)
-            </h4>
-            <p class="text-[11px] text-slate-400">通常・ニトロ時の限界スピード上昇</p>
-            <p id="level-speed" class="text-xs font-bold text-amber-400 mt-1">Lv. 1</p>
-          </div>
-          <button id="btn-upgrade-speed" class="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-bold py-2 px-3 rounded-lg shadow hover:brightness-110 disabled:opacity-50">
-            <span id="cost-speed">150 G</span>
-          </button>
-        </div>
-
-        <!-- Nitro Recharge -->
-        <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
-          <div>
-            <h4 class="text-sm font-bold text-white flex items-center">
-              <i class="fa-solid fa-bolt text-amber-400 mr-2"></i> ニトロ効率 (Nitro Boost)
-            </h4>
-            <p class="text-[11px] text-slate-400">正解粉砕時のニトロ回復量アップ</p>
-            <p id="level-nitro" class="text-xs font-bold text-amber-400 mt-1">Lv. 1</p>
-          </div>
-          <button id="btn-upgrade-nitro" class="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-bold py-2 px-3 rounded-lg shadow hover:brightness-110 disabled:opacity-50">
-            <span id="cost-nitro">200 G</span>
-          </button>
-        </div>
-
-        <!-- Score Multiplier -->
-        <div class="bg-slate-800/60 p-3 rounded-xl border border-slate-700 flex items-center justify-between">
-          <div>
-            <h4 class="text-sm font-bold text-white flex items-center">
-              <i class="fa-solid fa-star text-purple-400 mr-2"></i> スコア倍率 (Score Bonus)
-            </h4>
-            <p class="text-[11px] text-slate-400">走行・粉砕で得られるスコアを底上げ</p>
-            <p id="level-mult" class="text-xs font-bold text-amber-400 mt-1">Lv. 1</p>
-          </div>
-          <button id="btn-upgrade-mult" class="bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 text-xs font-bold py-2 px-3 rounded-lg shadow hover:brightness-110 disabled:opacity-50">
-            <span id="cost-mult">250 G</span>
-          </button>
-        </div>
-
-      </div>
-    </div>
-  </div>
-
-  <!-- FOOTER CONTROLS GUIDE -->
-  <footer class="w-full max-w-5xl py-3 px-4 text-center text-xs text-slate-500 border-t border-slate-900">
-    <div class="hidden sm:flex justify-center items-center space-x-6">
-      <span><kbd class="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono">A</kbd> / <kbd class="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono">D</kbd> or <kbd class="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono">←</kbd> <kbd class="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono">→</kbd> : レーン移動</span>
-      <span><kbd class="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-slate-300 font-mono">Space</kbd> : ニトロダッシュ発動</span>
-    </div>
-  </footer>
-
-  <!-- SOUND SYNTHESIZER (Web Audio API) -->
-  <script>
-    class SoundSynth {
-      constructor() {
-        this.ctx = null;
-      }
-      init() {
-        if (!this.ctx) {
-          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-      }
-      playCorrect() {
-        if (!this.ctx) return;
-        const now = this.ctx.currentTime;
-        // Fanfare High Chime
-        [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
-          gain.gain.setValueAtTime(0.2, now + idx * 0.08);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(now + idx * 0.08);
-          osc.stop(now + idx * 0.08 + 0.25);
-        });
-      }
-
-      playWrong() {
-        if (!this.ctx) return;
-        const now = this.ctx.currentTime;
-        // Low Buzzing Error Sound
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(150, now);
-        osc.frequency.setValueAtTime(110, now + 0.15);
-        gain.gain.setValueAtTime(0.4, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.35);
-      }
-
-      playSmash() {
-        if (!this.ctx) return;
-        const now = this.ctx.currentTime;
-        const bufferSize = this.ctx.sampleRate * 0.25;
-        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
-        
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = buffer;
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(1000, now);
-        filter.frequency.exponentialRampToValueAtTime(100, now + 0.2);
-
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(0.8, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.ctx.destination);
-        noise.start(now);
-      }
-
-      playNitro() {
-        if (!this.ctx) return;
-        const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(300, now);
-        osc.frequency.exponentialRampToValueAtTime(1200, now + 0.3);
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.3);
-      }
-
-      playCoin() {
-        if (!this.ctx) return;
-        const now = this.ctx.currentTime;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(987.77, now);
-        osc.frequency.setValueAtTime(1318.51, now + 0.08);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.2);
-      }
-    }
-    const audio = new SoundSynth();
-  </script>
-
-  <!-- FIREBASE & GAME LOGIC -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { 
-      getAuth, 
-      GoogleAuthProvider, 
-      signInWithPopup, 
-      signOut, 
-      onAuthStateChanged 
-    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { 
-      getFirestore, 
-      doc, 
-      getDoc, 
-      setDoc 
-    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-    // -------------------------------------------------------------
-    // Firebase Setup
-    // -------------------------------------------------------------
-    const firebaseConfig = {
-      apiKey: "AIzaSyAeJF5n56TtA4WEU7cZi_DEpKitsMu0tUs",
-      authDomain: "game-80e27.firebaseapp.com",
-      projectId: "game-80e27",
-      storageBucket: "game-80e27.firebasestorage.app",
-      messagingSenderId: "592901013181",
-      appId: "1:592901013181:web:26a8b853e6aa27de6701d4"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
-    const googleProvider = new GoogleAuthProvider();
-
-    // Player State Data
-    let currentUser = null;
-    let playerData = {
-      highScore: 0,
-      totalCoins: 0,
-      totalSmashes: 0,
-      upgrades: {
-        ram: 1,
-        speed: 1,
-        nitro: 1,
-        mult: 1
-      }
-    };
-
-    // DOM Elements
-    const authLoading = document.getElementById('auth-loading');
-    const btnLogin = document.getElementById('btn-login');
-    const btnLogout = document.getElementById('btn-logout');
-    const userProfile = document.getElementById('user-profile');
-    const userAvatar = document.getElementById('user-avatar');
-    const userName = document.getElementById('user-name');
-
-    const statHighScore = document.getElementById('stat-highscore');
-    const statCoins = document.getElementById('stat-coins');
-    const statSmashes = document.getElementById('stat-smashes');
-
-    const overlayMenu = document.getElementById('overlay-menu');
-    const overlayGameOver = document.getElementById('overlay-gameover');
-    const overlayQuiz = document.getElementById('overlay-quiz');
-
-    const hud = document.getElementById('hud');
-    const hudSpeed = document.getElementById('hud-speed');
-    const hudScore = document.getElementById('hud-score');
-    const hudLives = document.getElementById('hud-lives');
-    const hudNitroFill = document.getElementById('hud-nitro-fill');
-    const hudComboBadge = document.getElementById('hud-combo-badge');
-    const hudCombo = document.getElementById('hud-combo');
-    const speedOverlay = document.getElementById('speed-overlay');
-
-    const modalShop = document.getElementById('modal-shop');
-    const shopCoinBalance = document.getElementById('shop-coin-balance');
-
-    // -------------------------------------------------------------
-    // VEGETABLE QUIZ DATABASE
-    // -------------------------------------------------------------
-    const QUIZ_DATABASE = {
-      // Level 1: 絵を見て野菜の名前を当てる
-      easy: [
-        { emoji: "🥕", question: "この野菜の名前は何でしょう？", options: ["ニンジン", "ダイコン", "ゴボウ", "パプリカ"], answer: 0, detail: "正解は「ニンジン」です！" },
-        { emoji: "🍅", question: "この野菜の名前は何でしょう？", options: ["リンゴ", "トマト", "パプリカ", "イチゴ"], answer: 1, detail: "正解は「トマト」です！" },
-        { emoji: "🥦", question: "この野菜の名前は何でしょう？", options: ["カリフラワー", "キャベツ", "ブロッコリー", "レタス"], answer: 2, detail: "正解は「ブロッコリー」です！" },
-        { emoji: "🍆", question: "この野菜の名前は何でしょう？", options: ["ズッキーニ", "サツマイモ", "アボカド", "ナス"], answer: 3, detail: "正解は「ナス」です！" },
-        { emoji: "🥒", question: "この野菜の名前は何でしょう？", options: ["キュウリ", "ゴーヤ", "ズッキーニ", "オクラ"], answer: 0, detail: "正解は「キュウリ」です！" },
-        { emoji: "🌽", question: "この野菜の名前は何でしょう？", options: ["ヤングコーン", "トウモロコシ", "タケノコ", "バナナ"], answer: 1, detail: "正解は「トウモロコシ」です！" },
-        { emoji: "🧅", question: "この野菜の名前は何でしょう？", options: ["ニンニク", "カブ", "タマネギ", "ラッキョウ"], answer: 2, detail: "正解は「タマネギ」です！" },
-        { emoji: "🍠", question: "この野菜の名前は何でしょう？", options: ["ジャガイモ", "サトイモ", "ナガイモ", "サツマイモ"], answer: 3, detail: "正解は「サツマイモ」です！" },
-        { emoji: "🎃", question: "この野菜の名前は何でしょう？", options: ["カボチャ", "ズッキーニ", "メロン", "スイカ"], answer: 0, detail: "正解は「カボチャ」です！" },
-        { emoji: "🫑", question: "この野菜の名前は何でしょう？", options: ["ゴーヤ", "ピーマン", "トウガラシ", "アボカド"], answer: 1, detail: "正解は「ピーマン」です！" }
-      ],
-      // Level 2: 絵を見て「何科」の野菜かを当てる
-      medium: [
-        { emoji: "🥕", name: "ニンジン", question: "ニンジンは何科の野菜でしょう？", options: ["セリ科", "アブラナ科", "ナス科", "ウリ科"], answer: 0, detail: "正解は「セリ科」です！（パセリやミツバと同じ仲間です）" },
-        { emoji: "🍅", name: "トマト", question: "トマトは何科の野菜でしょう？", options: ["ウリ科", "ナス科", "バラ科", "ヒガンバナ科"], answer: 1, detail: "正解は「ナス科」です！（ジャガイモやピーマンもナス科です）" },
-        { emoji: "🥦", name: "ブロッコリー", question: "ブロッコリーは何科の野菜でしょう？", options: ["キク科", "セリ科", "アブラナ科", "マメ科"], answer: 2, detail: "正解は「アブラナ科」です！（キャベツやダイコンもアブラナ科です）" },
-        { emoji: "🥒", name: "キュウリ", question: "キュウリは何科の野菜でしょう？", options: ["ヒルガオ科", "ナス科", "セリ科", "ウリ科"], answer: 3, detail: "正解は「ウリ科」です！（カボチャやスイカ、ゴーヤもウリ科です）" },
-        { emoji: "🧅", name: "タマネギ", question: "タマネギは何科の野菜でしょう？", options: ["ヒガンバナ科", "アブラナ科", "イネ科", "セリ科"], answer: 0, detail: "正解は「ヒガンバナ科」です！（ニンニクやニラも同じ科です）" },
-        { emoji: "🍠", name: "サツマイモ", question: "サツマイモは何科の野菜でしょう？", options: ["ナス科", "ヒルガオ科", "サトイモ科", "マメ科"], answer: 1, detail: "正解は「ヒルガオ科」です！（アサガオの仲間になります）" },
-        { emoji: "🥬", name: "レタス", question: "レタスは何科の野菜でしょう？", options: ["アブラナ科", "セリ科", "キク科", "アカザ科"], answer: 2, detail: "正解は「キク科」です！（キャベツはアブラナ科ですがレタスはキク科です）" },
-        { emoji: "🥔", name: "ジャガイモ", question: "ジャガイモは何科の野菜でしょう？", options: ["サトイモ科", "ヒルガオ科", "アブラナ科", "ナス科"], answer: 3, detail: "正解は「ナス科」です！（サツマイモとは科が異なります）" }
-      ],
-      // Level 3: 栄養・雑学・特徴に関する問題
-      hard: [
-        { emoji: "🍅", name: "トマト", question: "トマトの抗酸化成分「リコピン」の効果的な摂り方は？", options: ["加熱して油と一緒に摂る", "生で冷やして食べる", "水に長くさらす", "皮をすべて剥いて食べる"], answer: 0, detail: "正解は「加熱して油と一緒に摂る」です！脂溶性のため油と摂ると吸収率が大幅UPします。" },
-        { emoji: "🥬", name: "キャベツ", question: "キャベツに多く含まれ、胃粘膜を保護する別名ビタミンUとは？", options: ["アリシン", "キャベジン", "リコピン", "カプサイシン"], answer: 1, detail: "正解は「キャベジン」です！胃粘膜を修復・保護する作用があります。" },
-        { emoji: "🥕", name: "ニンジン", question: "ニンジンの綺麗なオレンジ色の主成分である栄養素は？", options: ["アントシアニン", "リコピン", "β-カロテン", "ルテイン"], answer: 2, detail: "正解は「β-カロテン」です！体内でビタミンAに変換されて目や皮膚を健康に保ちます。" },
-        { emoji: "🍆", name: "ナス", question: "ナスの紫色の皮に含まれるポリフェノールの一種は？", options: ["カプサイシン", "クロロフィル", "ショウガオール", "ナスニン"], answer: 3, detail: "正解は「ナスニン」です！強い抗酸化力を持つアントシアニン系色素です。" },
-        { emoji: "🫛", name: "エダマメ", question: "エダマメが収穫されずに成長して熟すと何の豆になる？", options: ["ダイズ（大豆）", "アズキ（小豆）", "インゲンマメ", "ソラマメ"], answer: 0, detail: "正解は「ダイズ（大豆）」です！未成熟な状態の大豆を収穫したものが枝豆です。" }
-      ]
-    };
-
-    // -------------------------------------------------------------
-    // Firebase Auth Handler
-    // -------------------------------------------------------------
-    btnLogin.addEventListener('click', async () => {
-      try {
-        await signInWithPopup(auth, googleProvider);
-      } catch (err) {
-        console.error("Login failed:", err);
-        alert("Googleログインに失敗しました。");
-      }
-    });
-
-    btnLogout.addEventListener('click', () => {
-      signOut(auth);
-    });
-
-    onAuthStateChanged(auth, async (user) => {
-      authLoading.classList.add('hidden');
-      if (user) {
-        currentUser = user;
-        btnLogin.classList.add('hidden');
-        userProfile.classList.remove('hidden');
-        userAvatar.src = user.photoURL || 'https://via.placeholder.com/32';
-        userName.textContent = user.displayName || 'Player';
-        await loadUserData(user.uid);
-      } else {
-        currentUser = null;
-        userProfile.classList.add('hidden');
-        btnLogin.classList.remove('hidden');
-        updateUIStats();
-      }
-    });
-
-    async function loadUserData(uid) {
-      try {
-        const userRef = doc(db, 'users', uid);
-        const docSnap = await getDoc(userRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          playerData = {
-            highScore: data.highScore || 0,
-            totalCoins: data.totalCoins || 0,
-            totalSmashes: data.totalSmashes || 0,
-            upgrades: {
-              ram: data.upgrades?.ram || 1,
-              speed: data.upgrades?.speed || 1,
-              nitro: data.upgrades?.nitro || 1,
-              mult: data.upgrades?.mult || 1
+        window.loginWithGoogle = async function() {
+            try {
+                const result = await signInWithPopup(window.firebaseAuth, window.googleProvider);
+                showToast("ログイン成功: " + result.user.displayName, "success");
+            } catch (err) {
+                console.warn("Auth popup failed/closed", err);
+                showToast("ゲストモードでプレイできます", "info");
             }
-          };
-        } else {
-          await setDoc(userRef, playerData);
-        }
-      } catch (err) {
-        console.error("Error loading user data:", err);
-      }
-      updateUIStats();
-    }
-
-    async function saveUserData() {
-      updateUIStats();
-      if (!currentUser) return;
-      try {
-        const userRef = doc(db, 'users', currentUser.uid);
-        await setDoc(userRef, playerData, { merge: true });
-      } catch (err) {
-        console.error("Error saving data to Cloud:", err);
-      }
-    }
-
-    function updateUIStats() {
-      statHighScore.textContent = playerData.highScore.toLocaleString();
-      statCoins.textContent = playerData.totalCoins.toLocaleString();
-      statSmashes.textContent = playerData.totalSmashes.toLocaleString();
-      shopCoinBalance.textContent = playerData.totalCoins.toLocaleString() + ' G';
-      updateShopUI();
-    }
-
-    // -------------------------------------------------------------
-    // UPGRADE SHOP LOGIC
-    // -------------------------------------------------------------
-    const upgradeCosts = {
-      ram: (lvl) => Math.floor(100 * Math.pow(1.6, lvl - 1)),
-      speed: (lvl) => Math.floor(150 * Math.pow(1.6, lvl - 1)),
-      nitro: (lvl) => Math.floor(200 * Math.pow(1.6, lvl - 1)),
-      mult: (lvl) => Math.floor(250 * Math.pow(1.8, lvl - 1))
-    };
-
-    function updateShopUI() {
-      ['ram', 'speed', 'nitro', 'mult'].forEach(key => {
-        const lvl = playerData.upgrades[key];
-        const cost = upgradeCosts[key](lvl);
-        document.getElementById(`level-${key}`).textContent = `Lv. ${lvl}`;
-        document.getElementById(`cost-${key}`).textContent = `${cost.toLocaleString()} G`;
-        document.getElementById(`btn-upgrade-${key}`).disabled = playerData.totalCoins < cost;
-      });
-    }
-
-    function buyUpgrade(key) {
-      const lvl = playerData.upgrades[key];
-      const cost = upgradeCosts[key](lvl);
-      if (playerData.totalCoins >= cost) {
-        playerData.totalCoins -= cost;
-        playerData.upgrades[key] += 1;
-        saveUserData();
-        audio.playCoin();
-      }
-    }
-
-    document.getElementById('btn-shop').addEventListener('click', () => modalShop.classList.remove('hidden'));
-    document.getElementById('btn-close-shop').addEventListener('click', () => modalShop.classList.add('hidden'));
-
-    document.getElementById('btn-upgrade-ram').addEventListener('click', () => buyUpgrade('ram'));
-    document.getElementById('btn-upgrade-speed').addEventListener('click', () => buyUpgrade('speed'));
-    document.getElementById('btn-upgrade-nitro').addEventListener('click', () => buyUpgrade('nitro'));
-    document.getElementById('btn-upgrade-mult').addEventListener('click', () => buyUpgrade('mult'));
-
-    // -------------------------------------------------------------
-    // GAME ENGINE & CANVAS GRAPHICS
-    // -------------------------------------------------------------
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-
-    function resizeCanvas() {
-      canvas.width = canvas.clientWidth;
-      canvas.height = canvas.clientHeight;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    // Game Variables
-    let isPlaying = false;
-    let isQuizActive = false;
-    let lives = 3;
-    let score = 0;
-    let coinsEarned = 0;
-    let smashesInRun = 0;
-    let comboCount = 0;
-    let comboTimer = 0;
-    let distance = 0;
-
-    let lane = 1; // 0: Left, 1: Center, 2: Right
-    let targetX = 0;
-    let playerX = 0;
-    let playerY = 0;
-
-    let speed = 80;
-    let baseMaxSpeed = 220;
-    let nitro = 100;
-    let isNitroActive = false;
-
-    let obstacles = [];
-    let particles = [];
-    let floatingTexts = [];
-    let roadMarkers = [];
-
-    // Active Quiz State
-    let currentCollidedObstacle = null;
-    let currentQuizData = null;
-
-    // Screen Shake
-    let shakeDuration = 0;
-    let shakeIntensity = 0;
-
-    function triggerShake(intensity, duration) {
-      shakeIntensity = intensity;
-      shakeDuration = duration;
-    }
-
-    function getLaneX(laneIndex) {
-      const roadWidth = canvas.width * 0.7;
-      const leftBound = (canvas.width - roadWidth) / 2;
-      const laneWidth = roadWidth / 3;
-      return leftBound + laneWidth * laneIndex + laneWidth / 2;
-    }
-
-    function updateLivesUI() {
-      hudLives.innerHTML = '';
-      for (let i = 0; i < 3; i++) {
-        const heart = document.createElement('i');
-        if (i < lives) {
-          heart.className = 'fa-solid fa-heart heart-anim text-red-500';
-        } else {
-          heart.className = 'fa-solid fa-heart-crack text-slate-700';
-        }
-        hudLives.appendChild(heart);
-      }
-    }
-
-    function startGame() {
-      audio.init();
-      isPlaying = true;
-      isQuizActive = false;
-      lives = 3;
-      score = 0;
-      coinsEarned = 0;
-      smashesInRun = 0;
-      comboCount = 0;
-      comboTimer = 0;
-      distance = 0;
-      lane = 1;
-
-      baseMaxSpeed = 200 + (playerData.upgrades.speed * 20);
-      speed = 100;
-      nitro = 100;
-
-      playerX = getLaneX(lane);
-      playerY = canvas.height * 0.78;
-      targetX = playerX;
-
-      obstacles = [];
-      particles = [];
-      floatingTexts = [];
-      roadMarkers = [];
-
-      for (let i = 0; i < 15; i++) {
-        roadMarkers.push({ y: i * (canvas.height / 10) });
-      }
-
-      updateLivesUI();
-      overlayMenu.classList.add('hidden');
-      overlayGameOver.classList.add('hidden');
-      overlayQuiz.classList.add('hidden');
-      hud.classList.remove('hidden');
-
-      lastTime = performance.now();
-      requestAnimationFrame(gameLoop);
-    }
-
-    // Controls
-    function moveLeft() {
-      if (!isPlaying || isQuizActive) return;
-      if (lane > 0) {
-        lane--;
-        targetX = getLaneX(lane);
-      }
-    }
-    function moveRight() {
-      if (!isPlaying || isQuizActive) return;
-      if (lane < 2) {
-        lane++;
-        targetX = getLaneX(lane);
-      }
-    }
-    function activateNitro() {
-      if (!isPlaying || isQuizActive) return;
-      if (nitro > 20 && !isNitroActive) {
-        isNitroActive = true;
-        audio.playNitro();
-      }
-    }
-
-    window.addEventListener('keydown', (e) => {
-      if (!isPlaying) return;
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLeft();
-      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight();
-      if (e.key === ' ' || e.key === 'ArrowUp') activateNitro();
-    });
-
-    document.getElementById('btn-touch-left').addEventListener('click', moveLeft);
-    document.getElementById('btn-touch-right').addEventListener('click', moveRight);
-    document.getElementById('btn-touch-nitro').addEventListener('click', activateNitro);
-
-    document.getElementById('btn-start').addEventListener('click', startGame);
-    document.getElementById('btn-restart').addEventListener('click', startGame);
-
-    // -------------------------------------------------------------
-    // OBSTACLE & QUIZ TRIGGER LOGIC
-    // -------------------------------------------------------------
-    function spawnObstacle() {
-      const laneIndex = Math.floor(Math.random() * 3);
-      obstacles.push({
-        lane: laneIndex,
-        x: getLaneX(laneIndex),
-        y: -100,
-        width: canvas.width * 0.22,
-        height: 50,
-        color: '#10b981'
-      });
-    }
-
-    function openQuizModal(obstacle) {
-      isQuizActive = true;
-      currentCollidedObstacle = obstacle;
-
-      // Select Difficulty pool based on distance / score
-      let pool = QUIZ_DATABASE.easy;
-      let badgeText = "LV.1 野菜当てクイズ";
-      
-      if (distance > 2500 || score > 8000) {
-        pool = QUIZ_DATABASE.hard;
-        badgeText = "LV.3 野菜雑学・難問クイズ";
-      } else if (distance > 1000 || score > 3000) {
-        pool = QUIZ_DATABASE.medium;
-        badgeText = "LV.2 何科の野菜クイズ";
-      }
-
-      // Pick random question
-      const q = pool[Math.floor(Math.random() * pool.length)];
-      currentQuizData = q;
-
-      document.getElementById('quiz-level-badge').textContent = badgeText;
-      document.getElementById('quiz-emoji').textContent = q.emoji;
-      document.getElementById('quiz-question').textContent = q.question;
-
-      const optionsContainer = document.getElementById('quiz-options');
-      optionsContainer.innerHTML = '';
-      document.getElementById('quiz-feedback').classList.add('hidden');
-
-      q.options.forEach((optText, index) => {
-        const btn = document.createElement('button');
-        btn.className = 'w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl border border-slate-700 hover:border-emerald-400 transition text-sm flex items-center justify-between group';
-        btn.innerHTML = `
-          <span><span class="text-emerald-400 font-orbitron mr-2">${index + 1}.</span> ${optText}</span>
-          <i class="fa-solid fa-chevron-right text-xs opacity-0 group-hover:opacity-100 transition text-emerald-400"></i>
-        `;
-        btn.addEventListener('click', () => handleQuizAnswer(index));
-        optionsContainer.appendChild(btn);
-      });
-
-      overlayQuiz.classList.remove('hidden');
-    }
-
-    function handleQuizAnswer(selectedIndex) {
-      const feedbackBox = document.getElementById('quiz-feedback');
-      const titleEl = document.getElementById('quiz-result-title');
-      const detailEl = document.getElementById('quiz-result-detail');
-      const btnContinue = document.getElementById('btn-quiz-continue');
-
-      // Disable option buttons
-      const optionBtns = document.querySelectorAll('#quiz-options button');
-      optionBtns.forEach(btn => btn.disabled = true);
-
-      if (selectedIndex === currentQuizData.answer) {
-        // CORRECT ANSWER
-        audio.playCorrect();
-        titleEl.className = 'text-xl font-black text-emerald-400 mb-1';
-        titleEl.innerHTML = '<i class="fa-solid fa-circle-check mr-2"></i> 正解！壁を粉砕！';
-        detailEl.textContent = currentQuizData.detail;
-
-        btnContinue.onclick = () => {
-          overlayQuiz.classList.add('hidden');
-          isQuizActive = false;
-          // Successful Smash!
-          audio.playSmash();
-          createExplosion(currentCollidedObstacle.x, currentCollidedObstacle.y, '#10b981', 30);
-          triggerShake(15, 0.3);
-
-          comboCount++;
-          comboTimer = 3.0;
-          const mult = 1 + (comboCount * 0.2);
-          const gainedScore = Math.floor(500 * mult * playerData.upgrades.mult * (1 + playerData.upgrades.ram * 0.2));
-          score += gainedScore;
-          smashesInRun++;
-          playerData.totalSmashes++;
-
-          coinsEarned += 20;
-          playerData.totalCoins += 20;
-
-          nitro = Math.min(100, nitro + (25 * playerData.upgrades.nitro));
-          speed += 20;
-
-          hudCombo.textContent = comboCount;
-          hudComboBadge.classList.remove('hidden');
-
-          // Remove smashed obstacle
-          obstacles = obstacles.filter(o => o !== currentCollidedObstacle);
-          lastTime = performance.now();
         };
 
-      } else {
-        // WRONG ANSWER
-        audio.playWrong();
-        lives--;
-        updateLivesUI();
-        triggerShake(20, 0.4);
-
-        titleEl.className = 'text-xl font-black text-red-500 mb-1';
-        titleEl.innerHTML = '<i class="fa-solid fa-triangle-exclamation mr-2"></i> 不正解...！';
-        detailEl.textContent = currentQuizData.detail;
-
-        btnContinue.onclick = () => {
-          overlayQuiz.classList.add('hidden');
-          isQuizActive = false;
-
-          if (lives <= 0) {
-            gameOver();
-            return;
-          }
-
-          // Damage Penalty & Continue
-          speed *= 0.4;
-          addFloatingText("CRASH! DAMAGE!", playerX, playerY - 30, '#ef4444');
-          obstacles = obstacles.filter(o => o !== currentCollidedObstacle);
-          lastTime = performance.now();
+        window.logoutGoogle = async function() {
+            await signOut(window.firebaseAuth);
+            showToast("ログアウトしました", "info");
         };
-      }
 
-      feedbackBox.classList.remove('hidden');
-    }
+        // Track Auth State
+        onAuthStateChanged(window.firebaseAuth, async (user) => {
+            const loginBtn = document.getElementById('loginBtn');
+            const userInfo = document.getElementById('userInfo');
+            const userAvatar = document.getElementById('userAvatar');
+            const userName = document.getElementById('userName');
 
-    function createExplosion(x, y, color, count = 25) {
-      for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const spd = Math.random() * 12 + 4;
-        particles.push({
-          x: x,
-          y: y,
-          vx: Math.cos(angle) * spd,
-          vy: Math.sin(angle) * spd - (speed * 0.05),
-          size: Math.random() * 8 + 4,
-          color: color,
-          life: 1.0,
-          decay: Math.random() * 0.04 + 0.02
+            if (user) {
+                window.currentUser = user;
+                if(loginBtn) loginBtn.classList.add('hidden');
+                if(userInfo) {
+                    userInfo.classList.remove('hidden');
+                    userInfo.classList.add('flex');
+                }
+                if(userAvatar) userAvatar.src = user.photoURL || 'https://placehold.co/40x40/0284c7/ffffff?text=U';
+                if(userName) userName.textContent = user.displayName || 'レーサー';
+                await loadCloudData(user.uid);
+            } else {
+                window.currentUser = null;
+                if(loginBtn) loginBtn.classList.remove('hidden');
+                if(userInfo) {
+                    userInfo.classList.add('hidden');
+                    userInfo.classList.remove('flex');
+                }
+                loadLocalData();
+            }
         });
-      }
-    }
+    </script>
 
-    function addFloatingText(text, x, y, color = '#f59e0b') {
-      floatingTexts.push({ text, x, y, color, life: 1.0, vy: -2 });
-    }
-
-    // -------------------------------------------------------------
-    // GAME LOOP
-    // -------------------------------------------------------------
-    let lastTime = 0;
-    let spawnTimer = 0;
-
-    function gameLoop(time) {
-      if (!isPlaying) return;
-      const dt = (time - lastTime) / 1000;
-      lastTime = time;
-
-      if (!isQuizActive) {
-        update(dt);
-        render();
-      }
-
-      requestAnimationFrame(gameLoop);
-    }
-
-    function update(dt) {
-      let currentMaxSpeed = baseMaxSpeed;
-      if (isNitroActive) {
-        currentMaxSpeed *= 1.6;
-        nitro -= 40 * dt;
-        if (nitro <= 0) {
-          nitro = 0;
-          isNitroActive = false;
-        }
-      } else if (nitro < 100) {
-        nitro += 3 * dt;
-      }
-
-      if (speed < currentMaxSpeed) {
-        speed += 50 * dt;
-      } else {
-        speed -= 30 * dt;
-      }
-
-      speedOverlay.style.opacity = Math.max(0, (speed - 150) / 200);
-
-      distance += (speed * dt);
-      score += Math.floor((speed * dt * 0.5) * (playerData.upgrades.mult * 0.5 + 0.5));
-
-      playerX += (targetX - playerX) * 15 * dt;
-
-      roadMarkers.forEach(m => {
-        m.y += speed * 2.5 * dt;
-        if (m.y > canvas.height) m.y = -50;
-      });
-
-      // Spawn Obstacles
-      spawnTimer -= dt;
-      if (spawnTimer <= 0) {
-        spawnObstacle();
-        const spawnInterval = Math.max(1.2, 3.0 - (speed / 150));
-        spawnTimer = spawnInterval;
-      }
-
-      if (comboCount > 0) {
-        comboTimer -= dt;
-        if (comboTimer <= 0) {
-          comboCount = 0;
-          hudComboBadge.classList.add('hidden');
-        }
-      }
-
-      // Check Obstacle Collisions
-      for (let i = obstacles.length - 1; i >= 0; i--) {
-        const obs = obstacles[i];
-        obs.y += speed * 2.2 * dt;
-
-        const distY = Math.abs(obs.y - playerY);
-        const distX = Math.abs(obs.x - playerX);
-
-        if (distY < 35 && distX < (obs.width / 2 + 15)) {
-          // TRIGGER QUIZ MODAL
-          openQuizModal(obs);
-          return;
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Noto+Sans+JP:wght@500;700;900&display=swap');
+        
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+            overflow: hidden;
+            background-color: #030712;
+            color: #f3f4f6;
         }
 
-        if (obs.y > canvas.height + 100) {
-          obstacles.splice(i, 1);
+        .font-cyber {
+            font-family: 'Orbitron', sans-serif;
         }
-      }
 
-      // Particles
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= p.decay;
-        if (p.life <= 0) particles.splice(i, 1);
-      }
+        .cyber-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            box-shadow: 0 0 25px rgba(14, 165, 233, 0.2);
+        }
 
-      // Floating Texts
-      for (let i = floatingTexts.length - 1; i >= 0; i--) {
-        const ft = floatingTexts[i];
-        ft.y += ft.vy;
-        ft.life -= dt * 1.5;
-        if (ft.life <= 0) floatingTexts.splice(i, 1);
-      }
+        @keyframes pulse-glow {
+            0%, 100% { opacity: 0.9; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.02); }
+        }
+        .animate-pulse-glow {
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen relative bg-slate-950 text-white overflow-hidden">
 
-      hudSpeed.textContent = Math.floor(speed);
-      hudScore.textContent = score.toLocaleString();
-      hudNitroFill.style.width = `${nitro}%`;
-    }
+    <!-- 3D Canvas Container -->
+    <div id="canvas-container" class="absolute inset-0 z-0"></div>
 
-    // -------------------------------------------------------------
-    // RENDERING
-    // -------------------------------------------------------------
-    function render() {
-      ctx.save();
+    <!-- HUD Overlay (In-Game Top Bar) -->
+    <div id="hudOverlay" class="absolute top-0 left-0 w-full p-4 flex justify-between items-start pointer-events-none z-10 hidden">
+        <div class="cyber-card p-3 rounded-2xl flex flex-col gap-1 border-cyan-500/40">
+            <div class="text-xs text-cyan-400 font-cyber tracking-widest flex items-center gap-1.5">
+                <i class="fa-solid fa-flag-checkered text-emerald-400"></i> DISTANCE
+            </div>
+            <div class="text-2xl font-black font-cyber text-white tracking-wider">
+                <span id="hudDistance">0</span> <span class="text-xs text-cyan-300">m</span>
+            </div>
+            <div class="text-xs text-slate-400 font-cyber flex items-center gap-2 mt-0.5">
+                <span>SPEED: <span id="hudSpeed" class="text-amber-400 font-bold">0</span> km/h</span>
+            </div>
+        </div>
 
-      if (shakeDuration > 0) {
-        shakeDuration -= 0.016;
-        const dx = (Math.random() - 0.5) * shakeIntensity;
-        const dy = (Math.random() - 0.5) * shakeIntensity;
-        ctx.translate(dx, dy);
-      }
+        <div class="flex flex-col items-end gap-2">
+            <div class="cyber-card px-4 py-2 rounded-2xl flex items-center gap-2 border-rose-500/40">
+                <span class="text-xs text-rose-400 font-bold mr-1">LIVES</span>
+                <div id="livesContainer" class="flex gap-1.5 text-xl text-rose-500">
+                    <i class="fa-solid fa-heart animate-bounce"></i>
+                    <i class="fa-solid fa-heart animate-bounce"></i>
+                    <i class="fa-solid fa-heart animate-bounce"></i>
+                </div>
+            </div>
 
-      ctx.fillStyle = '#090d16';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+            <div class="cyber-card px-4 py-1.5 rounded-full flex items-center gap-2 border-amber-500/40">
+                <i class="fa-solid fa-coins text-amber-400"></i>
+                <span id="hudGold" class="font-cyber font-bold text-amber-300 text-sm">0</span>
+            </div>
+        </div>
+    </div>
 
-      const roadWidth = canvas.width * 0.7;
-      const leftBound = (canvas.width - roadWidth) / 2;
+    <!-- Mobile Highway Indicator -->
+    <div id="mobileControls" class="absolute bottom-6 left-0 right-0 px-6 flex justify-center items-center z-10 pointer-events-auto md:hidden hidden">
+        <div class="text-xs text-slate-300 font-bold bg-slate-900/80 px-4 py-2 rounded-full backdrop-blur-md border border-cyan-500/40 shadow-lg">
+            <i class="fa-solid fa-gauge-high text-cyan-400 mr-1.5"></i> 直線コースを全速力で自動走行中！
+        </div>
+    </div>
 
-      // Road Base
-      ctx.fillStyle = '#1e293b';
-      ctx.fillRect(leftBound, 0, roadWidth, canvas.height);
+    <!-- Main Menu Overlay -->
+    <div id="menuOverlay" class="absolute inset-0 z-20 flex flex-col items-center justify-between p-6 bg-slate-950/80 backdrop-blur-md transition-opacity duration-300">
+        <div class="w-full max-w-lg flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-leaf"></i> 野菜クイズ 75問収録
+                </span>
+            </div>
 
-      // Borders
-      ctx.fillStyle = '#10b981';
-      ctx.fillRect(leftBound - 8, 0, 8, canvas.height);
-      ctx.fillRect(leftBound + roadWidth, 0, 8, canvas.height);
+            <div>
+                <button id="loginBtn" onclick="window.loginWithGoogle()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-200 flex items-center gap-2 transition active:scale-95">
+                    <i class="fa-brands fa-google text-red-400"></i> Googleログイン
+                </button>
+                <div id="userInfo" class="hidden items-center gap-3 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-xl">
+                    <img id="userAvatar" src="" class="w-7 h-7 rounded-full border border-cyan-400">
+                    <span id="userName" class="text-xs font-bold text-slate-200 max-w-[100px] truncate">ユーザー</span>
+                    <button onclick="window.logoutGoogle()" class="text-xs text-slate-500 hover:text-rose-400 transition ml-1">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
 
-      // Lane Markers
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 4;
-      ctx.setLineDash([30, 30]);
+        <div class="text-center my-auto flex flex-col items-center">
+            <div class="inline-block px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/40 text-cyan-400 text-xs font-cyber tracking-widest mb-3">
+                SPEED & QUIZ ENDLESS RUNNER
+            </div>
+            <h1 class="text-4xl md:text-6xl font-black italic tracking-wider font-cyber bg-gradient-to-r from-cyan-400 via-emerald-400 to-amber-300 bg-clip-text text-transparent drop-shadow-lg mb-2">
+                HYPER SMASH<br><span class="text-3xl md:text-5xl text-white">野菜クイズ粉砕ラン</span>
+            </h1>
+            <p class="text-slate-400 text-xs md:text-sm max-w-sm mt-2 leading-relaxed">
+                障害物に体当たりして野菜クイズを解け！<br>正解で壁を爆破粉砕！全75問をクリアしてハイスコアを目指せ！
+            </p>
 
-      const lane1X = leftBound + roadWidth / 3;
-      const lane2X = leftBound + (roadWidth / 3) * 2;
+            <div class="grid grid-cols-2 gap-3 w-full max-w-xs mt-6">
+                <div class="cyber-card p-3 rounded-2xl text-center border-cyan-500/30">
+                    <div class="text-[10px] font-cyber text-slate-400">HIGH SCORE</div>
+                    <div id="menuHighScore" class="text-xl font-black font-cyber text-cyan-300">0 m</div>
+                </div>
+                <div class="cyber-card p-3 rounded-2xl text-center border-amber-500/30">
+                    <div class="text-[10px] font-cyber text-slate-400">CYBER GOLD</div>
+                    <div id="menuGold" class="text-xl font-black font-cyber text-amber-300">0 $</div>
+                </div>
+            </div>
 
-      roadMarkers.forEach(m => {
-        ctx.beginPath();
-        ctx.moveTo(lane1X, m.y);
-        ctx.lineTo(lane1X, m.y + 40);
-        ctx.moveTo(lane2X, m.y);
-        ctx.lineTo(lane2X, m.y + 40);
-        ctx.stroke();
-      });
-      ctx.setLineDash([]);
+            <div class="flex flex-col gap-3 w-full max-w-xs mt-6">
+                <button id="startGameBtn" class="w-full py-4 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-500 hover:brightness-110 active:scale-95 text-slate-950 font-black text-lg tracking-wider rounded-2xl shadow-lg shadow-emerald-500/25 transition flex items-center justify-center gap-2 animate-pulse-glow">
+                    <i class="fa-solid fa-play"></i> GAME START
+                </button>
+                <button id="openGarageBtn" class="w-full py-3 bg-slate-900/90 hover:bg-slate-800 active:scale-95 border border-slate-700 text-slate-200 font-bold rounded-2xl transition flex items-center justify-center gap-2 text-sm">
+                    <i class="fa-solid fa-wrench text-amber-400"></i> ガレージ（マシン強化）
+                </button>
+            </div>
+        </div>
 
-      // Draw Obstacle Walls
-      obstacles.forEach(obs => {
-        ctx.save();
-        ctx.shadowColor = '#10b981';
-        ctx.shadowBlur = 12;
+        <div class="text-[10px] text-slate-500 text-center">
+            操作不要: 直線コースを自動走行！壁に激突してクイズを粉砕しよう！
+        </div>
+    </div>
 
-        const rx = obs.x - obs.width / 2;
-        ctx.fillStyle = '#065f46';
-        ctx.beginPath();
-        ctx.roundRect(rx, obs.y, obs.width, obs.height, 8);
-        ctx.fill();
+    <!-- Quiz Modal (Smash Challenge) -->
+    <div id="quizModal" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-lg hidden">
+        <div class="cyber-card w-full max-w-md p-6 rounded-3xl border-emerald-500/50 relative overflow-hidden flex flex-col gap-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <span id="quizDifficultyBadge" class="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                        初級：野菜当て
+                    </span>
+                </div>
+                <div class="text-xs font-cyber text-slate-400 flex items-center gap-1">
+                    <i class="fa-solid fa-bolt text-amber-400"></i> SMASH QUIZ
+                </div>
+            </div>
 
-        ctx.strokeStyle = '#34d399';
-        ctx.lineWidth = 3;
-        ctx.stroke();
+            <div class="text-center py-2">
+                <div id="quizVegIcon" class="text-5xl mb-2 animate-bounce">🥦</div>
+                <h3 id="quizQuestion" class="text-lg font-bold text-white leading-snug">
+                    この野菜の名前は何でしょう？
+                </h3>
+            </div>
 
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '900 13px Orbitron, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('VEGE WALL ❓', obs.x, obs.y + obs.height / 2 + 5);
+            <div id="quizChoices" class="grid grid-cols-1 gap-2.5">
+                <!-- JS injected choice buttons -->
+            </div>
 
-        ctx.restore();
-      });
+            <div id="quizExplanation" class="hidden p-3.5 bg-slate-900/90 rounded-2xl border border-slate-800 text-xs text-slate-300 leading-relaxed">
+                <div id="quizResultTitle" class="font-bold text-sm mb-1"></div>
+                <p id="quizResultBody"></p>
+            </div>
+        </div>
+    </div>
 
-      // Draw Vehicle
-      ctx.save();
-      ctx.translate(playerX, playerY);
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md hidden">
+        <div class="cyber-card w-full max-w-sm p-6 rounded-3xl border-rose-500/40 text-center flex flex-col gap-5">
+            <div class="w-14 h-14 bg-rose-500/10 border border-rose-500/30 rounded-2xl flex items-center justify-center text-rose-400 text-2xl mx-auto">
+                <i class="fa-solid fa-burst"></i>
+            </div>
 
-      if (isNitroActive || speed > 220) {
-        ctx.fillStyle = '#f59e0b';
-        ctx.beginPath();
-        ctx.moveTo(-12, 25);
-        ctx.lineTo(0, 45 + Math.random() * 15);
-        ctx.lineTo(12, 25);
-        ctx.fill();
-      }
+            <div>
+                <h2 class="text-2xl font-black font-cyber text-rose-400 tracking-wider">GAME OVER</h2>
+                <p class="text-xs text-slate-400 mt-1">マシンが大破しました！</p>
+            </div>
 
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-      ctx.beginPath();
-      ctx.ellipse(0, 15, 25, 12, 0, 0, Math.PI * 2);
-      ctx.fill();
+            <div class="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 grid grid-cols-2 gap-3 text-center">
+                <div>
+                    <div class="text-[10px] text-slate-400">走行距離</div>
+                    <div id="goDistance" class="text-lg font-bold font-cyber text-cyan-300">0 m</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-slate-400">獲得ゴールド</div>
+                    <div id="goGold" class="text-lg font-bold font-cyber text-amber-300">+0 $</div>
+                </div>
+                <div class="col-span-2 pt-2 border-t border-slate-800 flex justify-around text-xs">
+                    <span class="text-slate-400">粉砕数: <strong id="goSmashes" class="text-emerald-400">0</strong></span>
+                    <span class="text-slate-400">最高記録: <strong id="goHighScore" class="text-cyan-400">0m</strong></span>
+                </div>
+            </div>
 
-      ctx.fillStyle = isNitroActive ? '#dc2626' : '#10b981';
-      ctx.shadowColor = isNitroActive ? '#f87171' : '#34d399';
-      ctx.shadowBlur = 15;
-      ctx.beginPath();
-      ctx.roundRect(-20, -35, 40, 60, 10);
-      ctx.fill();
+            <div class="flex flex-col gap-2">
+                <button id="retryBtn" class="w-full py-3.5 bg-gradient-to-r from-emerald-400 to-cyan-500 text-slate-950 font-black rounded-xl hover:brightness-110 active:scale-95 transition text-sm flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> もう一度プレイ
+                </button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="backToMenuBtn" class="py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-house text-cyan-400"></i> TOP画面へ
+                    </button>
+                    <button id="garageFromGameOverBtn" class="py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl border border-slate-700 transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-wrench text-amber-400"></i> マシン強化
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-      // Front Bumper
-      ctx.fillStyle = '#f59e0b';
-      ctx.beginPath();
-      ctx.moveTo(-22, -35);
-      ctx.lineTo(-12, -48);
-      ctx.lineTo(0, -38);
-      ctx.lineTo(12, -48);
-      ctx.lineTo(22, -35);
-      ctx.closePath();
-      ctx.fill();
+    <!-- Garage Upgrade Modal -->
+    <div id="garageModal" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md hidden">
+        <div class="cyber-card w-full max-w-md p-6 rounded-3xl border-amber-500/40 flex flex-col gap-5">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-wrench text-amber-400 text-lg"></i>
+                    <h2 class="text-lg font-bold font-cyber text-white">GARAGE UPGRADE</h2>
+                </div>
+                <div class="text-xs font-cyber text-amber-300 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/30">
+                    <i class="fa-solid fa-coins mr-1"></i><span id="garageGold">0</span> $
+                </div>
+            </div>
 
-      // Windshield
-      ctx.fillStyle = '#0f172a';
-      ctx.beginPath();
-      ctx.roundRect(-14, -20, 28, 16, 4);
-      ctx.fill();
+            <div class="flex flex-col gap-3">
+                <div class="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-xs text-white">最高速度アップ</div>
+                        <div class="text-[10px] text-slate-400">マシン加速上限を強化 (Lv.<span id="lvlSpeed">1</span>)</div>
+                    </div>
+                    <button id="buySpeedBtn" onclick="buyUpgrade('speed')" class="px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-300 font-bold text-xs rounded-xl transition flex items-center gap-1">
+                        強化 <span id="costSpeed">100</span> $
+                    </button>
+                </div>
 
-      ctx.restore();
+                <div class="bg-slate-900/80 p-3.5 rounded-2xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                        <div class="font-bold text-xs text-white">スマッシュゴールド倍率</div>
+                        <div class="text-[10px] text-slate-400">正解時の獲得ゴールド増加 (Lv.<span id="lvlPower">1</span>)</div>
+                    </div>
+                    <button id="buyPowerBtn" onclick="buyUpgrade('power')" class="px-3 py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-300 font-bold text-xs rounded-xl transition flex items-center gap-1">
+                        強化 <span id="costPower">150</span> $
+                    </button>
+                </div>
+            </div>
 
-      // Particles
-      particles.forEach(p => {
-        ctx.save();
-        ctx.globalAlpha = p.life;
-        ctx.fillStyle = p.color;
-        ctx.fillRect(p.x, p.y, p.size, p.size);
-        ctx.restore();
-      });
+            <button id="closeGarageBtn" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition">
+                TOP画面に戻る
+            </button>
+        </div>
+    </div>
 
-      // Floating Texts
-      floatingTexts.forEach(ft => {
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, ft.life);
-        ctx.font = '900 16px Orbitron, sans-serif';
-        ctx.fillStyle = ft.color;
-        ctx.textAlign = 'center';
-        ctx.fillText(ft.text, ft.x, ft.y);
-        ctx.restore();
-      });
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-white border border-slate-700 shadow-xl opacity-0 pointer-events-none transition-all duration-300">
+        Notification
+    </div>
 
-      ctx.restore();
-    }
+    <script>
+        let gameState = 'MENU'; 
+        let distance = 0;
+        let speed = 0;
+        let baseSpeed = 0.4;
+        let maxSpeed = 0.8;
+        let lives = 3;
+        let cyberGold = 0;
+        let totalSmashes = 0;
+        let highScore = 0;
 
-    // -------------------------------------------------------------
-    // GAME OVER
-    // -------------------------------------------------------------
-    function gameOver() {
-      isPlaying = false;
-      hud.classList.add('hidden');
-      speedOverlay.style.opacity = '0';
+        let upgrades = { speedLvl: 1, powerLvl: 1 };
+        let currentQuiz = null;
+        let currentQuizObstacle = null;
 
-      let isNewHigh = false;
-      if (score > playerData.highScore) {
-        playerData.highScore = score;
-        isNewHigh = true;
-      }
+        let audioCtx = null;
 
-      document.getElementById('go-score').textContent = score.toLocaleString();
-      document.getElementById('go-smashes').textContent = `${smashesInRun} 回`;
-      document.getElementById('go-coins').textContent = `+${coinsEarned} G`;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
 
-      const goNewHigh = document.getElementById('go-newhigh');
-      if (isNewHigh) {
-        goNewHigh.classList.remove('hidden');
-      } else {
-        goNewHigh.classList.add('hidden');
-      }
+        function playSound(type) {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
 
-      overlayGameOver.classList.remove('hidden');
-      saveUserData();
-    }
+                const now = audioCtx.currentTime;
+                if (type === 'smash') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.exponentialRampToValueAtTime(30, now + 0.3);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'correct') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.1);
+                    osc.frequency.setValueAtTime(783.99, now + 0.2);
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                } else if (type === 'wrong') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(180, now);
+                    osc.frequency.setValueAtTime(140, now + 0.15);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.4);
+                }
+            } catch (e) {
+                console.warn(e);
+            }
+        }
 
-  </script>
+        const quizQuestions = {
+            easy: [ // 初級: 野菜当て (25問)
+                { icon: "🥦", question: "この野菜の名前は？", choices: ["ブロッコリー", "カリフラワー", "キャベツ", "アスパラガス"], answer: 0, exp: "ブロッコリーはアブラナ科の野菜で、緑色の花蕾（からい）を食べる野菜です。" },
+                { icon: "🥕", question: "この野菜の名前は？", choices: ["パプリカ", "ニンジン", "ダイコン", "ゴボウ"], answer: 1, exp: "ニンジンはセリ科の根菜で、β-カロテン（ビタミンA原）が非常に豊富です。" },
+                { icon: "🍅", question: "この野菜の名前は？", choices: ["イチゴ", "パプリカ", "トマト", "ナス"], answer: 2, exp: "トマトはナス科の果菜類で、抗酸化作用のあるリコピンが豊富に含まれます。" },
+                { icon: "🍆", question: "この野菜の名前は？", choices: ["サツマイモ", "ナス", "ズッキーニ", "ブドウ"], answer: 1, exp: "ナスはナス科の野菜で、皮に含まれる紫色の色素はナスニン（アントシアニン系）です。" },
+                { icon: "🌽", question: "この野菜の名前は？", choices: ["トウモロコシ", "ヤングコーン", "キビ", "タケノコ"], answer: 0, exp: "トウモロコシはイネ科の一年草で、世界三大穀物の一つでもあります。" },
+                { icon: "🥬", question: "この野菜の名前は？", choices: ["ホウレンソウ", "レタス", "白菜", "キャベツ"], answer: 1, exp: "レタスはキク科の葉菜類で、水分が約95%含まれておりシャキシャキした食感が特徴です。" },
+                { icon: "🥒", question: "この野菜の名前は？", choices: ["ゴーヤ", "ズッキーニ", "キュウリ", "トウガン"], answer: 2, exp: "キュウリはウリ科の野菜で、ギネスブックに「最もカロリーが低い果実」として掲載されています。" },
+                { icon: "🧄", question: "この野菜の名前は？", choices: ["ニンニク", "タマネギ", "ラッキョウ", "ショウガ"], answer: 0, exp: "ニンニクはヒガンバナ科ネギ属で、においの成分アリシンには強い抗菌・滋養強壮効果があります。" },
+                { icon: "🥔", question: "この野菜の名前は？", choices: ["ジャガイモ", "サツマイモ", "サトイモ", "ナガイモ"], answer: 0, exp: "ジャガイモはナス科の地下茎（塊茎）で、ビタミンCが加熱に強い特徴があります。" },
+                { icon: "🧅", question: "この野菜の名前は？", choices: ["ニンニク", "タマネギ", "ペコロス", "カブ"], answer: 1, exp: "タマネギはヒガンバナ科ネギ属で、切ると涙が出るのは硫化アリル（アリシン）の影響です。" },
+                { icon: "🍠", question: "この野菜の名前は？", choices: ["ジャガイモ", "サツマイモ", "ヤマイモ", "タロイモ"], answer: 1, exp: "サツマイモはヒルガオ科で、甘みの成分であるマルトース（麦芽糖）は加熱によって増えます。" },
+                { icon: "🫑", question: "この野菜の名前は？", choices: ["ピーマン", "ゴーヤ", "ズッキーニ", "アボカド"], answer: 0, exp: "ピーマンはナス科のトウガラシの甘味種です。ビタミンCが非常に豊富に含まれます。" },
+                { icon: "🥑", question: "この野菜（果実）の名前は？", choices: ["アボカド", "ズッキーニ", "ライム", "キウイ"], answer: 0, exp: "アボカドはクスノキ科で「森のバター」と呼ばれ、良質な脂質（オレイン酸）が豊富です。" },
+                { icon: "🍄", question: "この食材（キノコ）の名前は？", choices: ["シイタケ", "マッシュルーム", "エノキ", "エリンギ"], answer: 1, exp: "マッシュルームはハラタケ科のキノコで、世界で最も多く生産・消費されているキノコです。" },
+                { icon: "🫛", question: "この野菜（豆類）の名前は？", choices: ["エダマメ", "サヤエンドウ", "インゲン", "ソラマメ"], answer: 0, exp: "エダマメはマメ科で、大豆（ダイズ）を未成熟なうちに収穫したものです。" },
+                { icon: "🎃", question: "この野菜の名前は？", choices: ["カボチャ", "ズッキーニ", "パプリカ", "メロン"], answer: 0, exp: "カボチャはウリ科の野菜で、β-カロテン、ビタミンE、ビタミンCが豊富な緑黄色野菜です。" },
+                { icon: "🫚", question: "この野菜（薬味）の名前は？", choices: ["ショウガ", "ミョウガ", "ワサビ", "ニンニク"], answer: 0, exp: "ショウガはショウガ科の根茎で、辛味成分ジンゲロールやショウガオールが含まれます。" },
+                { icon: "🌱", question: "発芽したばかりの若芽野菜を何と呼ぶ？", choices: ["スプラウト", "マイクログリーン", "ベビーリーフ", "モヤシ"], answer: 0, exp: "スプラウト（発芽野菜）は成長に必要な栄養素が凝縮されています。" },
+                { icon: "🥬", question: "中華料理でよく使われる、軸が白い葉菜類は？", choices: ["チンゲンサイ", "コマツナ", "ホウレンソウ", "水菜"], answer: 0, exp: "チンゲンサイはアブラナ科の野菜で、煮くずれしにくくシャキシャキ感が魅力です。" },
+                { icon: "🌿", question: "薬味に使われる爽やかな香りの葉は？", choices: ["シソ（大葉）", "パクチー", "バジル", "パセリ"], answer: 0, exp: "シソ（紫蘇）はシソ科の野菜で、ペリルアルデヒドという強力な防腐効果のある香り成分を持ちます。" },
+                { icon: "🎋", question: "春が旬で、竹の若い芽である食材は？", choices: ["タケノコ", "アスパラガス", "ウド", "フキ"], answer: 0, exp: "タケノコ（竹の子）はイネ科タケ亜科の芽で、あく抜きには米ぬかが使われます。" },
+                { icon: "🥬", question: "お鍋の定番「ハクサイ（白菜）」は何科？", choices: ["アブラナ科", "ウリ科", "ナス科", "キク科"], answer: 0, exp: "ハクサイはアブラナ科の野菜で、キャベツやカブの仲間です。" },
+                { icon: "根", question: "白い大きな根菜「ダイコン」は何科？", choices: ["アブラナ科", "セリ科", "ユリ科", "ナス科"], answer: 0, exp: "ダイコンはアブラナ科で、消化を助ける酵素（ジアスターゼ）を含みます。" },
+                { icon: "🌱", question: "「モヤシ」の主な原料は？", choices: ["緑豆（リョクトウ）", "小豆（アズキ）", "小麦", "トウモロコシ"], answer: 0, exp: "一般的に市場に出回るモヤシの多くは「緑豆（りょくとう）」から作られます。" },
+                { icon: "🍠", question: "サトイモは何科の野菜？", choices: ["サトイモ科", "ヒルガオ科", "ナス科", "ヤマノイモ科"], answer: 0, exp: "サトイモはサトイモ科で、ぬめり成分（ガラクタンなど）が特徴です。" }
+            ],
+            medium: [ // 中級: 栄養・調理・特徴 (25問)
+                { icon: "🍅", question: "トマトの赤色成分で、強い抗酸化作用を持つ栄養素は？", choices: ["リコピン", "ベータカロテン", "アントシアニン", "カプサイシン"], answer: 0, exp: "リコピンはカロテノイドの一種で、油と一緒に加熱調理すると吸収率が高まります。" },
+                { icon: "🥕", question: "ニンジンに豊富に含まれ、体内でビタミンAに変わる成分は？", choices: ["β-カロテン", "リコピン", "ビタミンC", "アリシン"], answer: 0, exp: "β-カロテンは緑黄色野菜の代表的な栄養素で、油と一緒に摂ると吸収が良くなります。" },
+                { icon: "🥦", question: "ブロッコリーのブロッコリー花蕾（上の部分）は植物のどこ？", choices: ["蕾（つぼみ）の集まり", "葉", "果実", "種子"], answer: 0, exp: "ブロッコリーは開花前の蕾（つぼみ）と茎を食べる野菜です。" },
+                { icon: "🥔", question: "ジャガイモの芽や緑化した皮に含まれる有毒物質は？", choices: ["ソラニン", "ムスカリン", "テトロドトキシン", "アミグダリン"], answer: 0, exp: "ソラニンやチャコニンは天然毒素で、芽や緑色部分はしっかり取り除く必要があります。" },
+                { icon: "🧅", question: "タマネギを切ったときに目が痛くなる原因物質は？", choices: ["硫化アリル", "クエン酸", "カプサイシン", "グルタミン酸"], answer: 0, exp: "硫化アリル（アリシンに変化）が蒸発して目を刺激します。" },
+                { icon: "🥬", question: "ホウレンソウに多く含まれ、貧血予防に効果的なミネラルは？", choices: ["鉄分", "カルシウム", "亜鉛", "マグネシウム"], answer: 0, exp: "ホウレンソウには鉄分や葉酸が豊富に含まれます。" },
+                { icon: "🫑", question: "赤パプリカと緑ピーマンの違いは？", choices: ["熟度の違い（赤は完熟）", "品種が全く違う", "育てる土の違い", "日照時間の違い"], answer: 0, exp: "緑ピーマンが完熟すると赤ピーマンや黄ピーマンになります。" },
+                { icon: "🧄", question: "ニンニクのニオイのもとで、ビタミンB1の吸収を高める成分は？", choices: ["アリシン", "ジンゲロール", "ピペリン", "サンショオール"], answer: 0, exp: "アリシンは疲労回復に効果的な栄養成分です。" },
+                { icon: "🎃", question: "カットしたカボチャの正しい保存方法は？", choices: ["種とワタを取り除いてラップ", "そのままラップ", "水に浸ける", "常温放置"], answer: 0, exp: "カボチャは種とワタから傷むため、取り除いてラップ密閉します。" },
+                { icon: "🫚", question: "ショウガを加熱すると増える温め成分は？", choices: ["ショウガオール", "アリシン", "カプサイシン", "ピペリン"], answer: 0, exp: "加熱・乾燥によってショウガオールに変化し、体を温める効果が高まります。" },
+                { icon: "🥒", question: "キュウリのイボイボの本来の役割は何？", choices: ["身を守るため（敵避け・水分蒸散防止）", "虫を引き寄せるため", "光を取り込むため", "飾り"], answer: 0, exp: "イボイボは水分蒸発や外敵から身を守る役割があります。" },
+                { icon: "🍆", question: "ナスを水に長く浸けすぎると損なわれる栄養は？", choices: ["水溶性のナスニンやビタミン", "脂質", "タンパク質", "食物繊維"], answer: 0, exp: "ナスニンは水溶性のため水に長時間浸けると溶け出します。" },
+                { icon: "🌽", question: "トウモロコシのヒゲ（絹糸）の数の秘密は？", choices: ["粒の数と同じ", "常に50本固定", "花びらの数と同じ", "無関係"], answer: 0, exp: "ヒゲ1本1本がめしべであり、粒の数と一致します。" },
+                { icon: "🍠", question: "サツマイモをじっくり焼き芋にすると甘くなる理由は？", choices: ["酵素アミラーゼがでんぷんを糖に変えるため", "水分蒸発のみ", "砂糖が増殖する", "タンパク質変性"], answer: 0, exp: "加熱により酵素が働き、でんぷんが麦芽糖に変わります。" },
+                { icon: "🍄", question: "キノコ類を日光に当てて天日干しすると増えるビタミンは？", choices: ["ビタミンD", "ビタミンA", "ビタミンC", "ビタミンE"], answer: 0, exp: "紫外線によりエルゴステロールがビタミンDに変化します。" },
+                { icon: "🥗", question: "キャベツに含まれる「ビタミンU」の主な効果は？", choices: ["胃粘膜の修復", "骨の強化", "視力回復", "筋肉増強"], answer: 0, exp: "ビタミンU（キャベジン）は胃の粘膜を守ります。" },
+                { icon: "🫛", question: "枝豆（エダマメ）が成長して熟すと何という食材になる？", choices: ["大豆（ダイズ）", "小豆（アズキ）", "落花生", "インゲン豆"], answer: 0, exp: "枝豆は大豆の未成熟な状態のものです。" },
+                { icon: "🥬", question: "小松菜はホウレンソウに比べて何の栄養素が約3倍豊富？", choices: ["カルシウム", "脂質", "ナトリウム", "糖質"], answer: 0, exp: "コマツナはカルシウムが豊富な緑黄色野菜です。" },
+                { icon: "ゴボウ", question: "ゴボウを日常的に野菜として食べる文化が定着している国は？", choices: ["日本", "アメリカ", "フランス", "インド"], answer: 0, exp: "ゴボウを美味しく常食する文化は日本独特です。" },
+                { icon: "レンコン", question: "レンコン（蓮根）に穴が開いている理由は何のため？", choices: ["泥の中で通気するため", "水を取り込むため", "軽くするため", "虫の跡"], answer: 0, exp: "泥の中で呼吸するための空気の通り道です。" },
+                { icon: "ネギ", question: "白ネギの白い部分はどのように作られる？", choices: ["土をかぶせて日光を遮る", "品種の差", "漂白する", "肥料の種類"], answer: 0, exp: "土寄せにより日光を遮ることで白く柔らかく育ちます。" },
+                { icon: "アスパラ", question: "ホワイトアスパラガスの栽培方法の秘密は？", choices: ["日光を遮光して育てる", "品種の違い", "収穫時期の違い", "雌雄の違い"], answer: 0, exp: "日光を遮って栽培するとホワイトアスパラガスになります。" },
+                { icon: "ミョウガ", question: "私たちが食べるミョウガの部位は何？", choices: ["花蕾（蕾の部分）", "根っこ", "茎", "葉っぱ"], answer: 0, exp: "食用にするミョウガは花穂（蕾）の部分です。" },
+                { icon: "セロリ", question: "セロリ特有の香り成分の主な効果は？", choices: ["精神安定・イライラ鎮静", "血糖値急上昇", "筋力増強", "体温低下"], answer: 0, exp: "セロリの香りは気持ちを落ち着かせる効果があります。" },
+                { icon: "ゴーヤ", question: "ゴーヤの苦味成分の主な効能は？", choices: ["健胃・食欲増進", "睡眠導入", "骨の強化", "視力回復"], answer: 0, exp: "苦味成分モモルデシンは食欲を増進させます。" }
+            ],
+            hard: [ // 上級: 何科の野菜か・植物分類 (25問)
+                { icon: "🍅", question: "トマトは何科の野菜？", choices: ["ナス科", "アブラナ科", "ウリ科", "セリ科"], answer: 0, exp: "トマト、ナス、ピーマン、ジャガイモは「ナス科」です。" },
+                { icon: "🥦", question: "ブロッコリーは何科の野菜？", choices: ["アブラナ科", "キク科", "セリ科", "ヒルガオ科"], answer: 0, exp: "ブロッコリー、キャベツ、ダイコンは「アブラナ科」です。" },
+                { icon: "🥒", question: "キュウリは何科の野菜？", choices: ["ウリ科", "ナス科", "マメ科", "バラ科"], answer: 0, exp: "キュウリ、カボチャ、スイカは「ウリ科」です。" },
+                { icon: "🥕", question: "ニンジンは何科の野菜？", choices: ["セリ科", "アブラナ科", "キク科", "ユリ科"], answer: 0, exp: "ニンジン、セロリ、パセリは「セリ科」です。" },
+                { icon: "🥔", question: "ジャガイモは何科の野菜？", choices: ["ナス科", "サトイモ科", "ヒルガオ科", "ヤマノイモ科"], answer: 0, exp: "ジャガイモは「ナス科」の植物です。" },
+                { icon: "🍠", question: "サツマイモは何科の野菜？", choices: ["ヒルガオ科", "ナス科", "サトイモ科", "アブラナ科"], answer: 0, exp: "サツマイモはアサガオと同じ「ヒルガオ科」です。" },
+                { icon: "🥬", question: "レタスは何科の野菜？", choices: ["キク科", "アブラナ科", "アカザ科", "セリ科"], answer: 0, exp: "レタスやサンチュ、ゴボウは「キク科」です。" },
+                { icon: "🧅", question: "タマネギやネギは何科（旧ユリ科）？", choices: ["ヒガンバナ科（ネギ属）", "ナス科", "セリ科", "アブラナ科"], answer: 0, exp: "タマネギやネギは「ヒガンバナ科ネギ属」です。" },
+                { icon: "🥬", question: "ホウレンソウは何科（旧アカザ科）の野菜？", choices: ["ヒユ科", "アブラナ科", "キク科", "セリ科"], answer: 0, exp: "ホウレンソウは「ヒユ科」に分類されます。" },
+                { icon: "🫛", question: "エダマメやソラマメは何科の野菜？", choices: ["マメ科", "アブラナ科", "キク科", "イネ科"], answer: 0, exp: "マメ科植物は窒素固定能力を持ちます。" },
+                { icon: "🌽", question: "トウモロコシは何科の植物？", choices: ["イネ科", "カヤツリグサ科", "マメ科", "キウイ科"], answer: 0, exp: "トウモロコシやイネ、ムギは「イネ科」です。" },
+                { icon: "🌿", question: "シソ（大葉）やバジルは何科の植物？", choices: ["シソ科", "セリ科", "ミカン科", "キク科"], answer: 0, exp: "シソ科の植物は芳香成分を持ちます。" },
+                { icon: "🫚", question: "ショウガやミョウガは何科の植物？", choices: ["ショウガ科", "サトイモ科", "コショウ科", "ユリ科"], answer: 0, exp: "ショウガやミョウガは「ショウガ科」です。" },
+                { icon: "🌱", question: "アスパラガスは何科の植物？", choices: ["キジカクシ科", "アブラナ科", "セリ科", "イネ科"], answer: 0, exp: "アスパラガスは「キジカクシ科」です。" },
+                { icon: "オクラ", question: "オクラは何科の植物？", choices: ["アオイ科", "ナス科", "ウリ科", "マメ科"], answer: 0, exp: "オクラはハイビスカスと同じ「アオイ科」です。" },
+                { icon: "ミズナ", question: "水菜（ミズナ）は何科の野菜？", choices: ["アブラナ科", "セリ科", "キク科", "ヒユ科"], answer: 0, exp: "ミズナは「アブラナ科」の野菜です。" },
+                { icon: "ズッキーニ", question: "ズッキーニは何科の野菜？", choices: ["ウリ科", "ナス科", "アブラナ科", "セリ科"], answer: 0, exp: "ズッキーニは「ウリ科カボチャ属」です。" },
+                { icon: "パセリ", question: "パセリは何科の野菜？", choices: ["セリ科", "シソ科", "キク科", "アブラナ科"], answer: 0, exp: "パセリは「セリ科」の二年草です。" },
+                { icon: "タケノコ", question: "タケノコは何科の植物？", choices: ["イネ科", "サトイモ科", "ヤシ科", "キジカクシ科"], answer: 0, exp: "竹や笹は「イネ科タケ亜科」です。" },
+                { icon: "フキ", question: "フキやフキノトウは何科の植物？", choices: ["キク科", "セリ科", "ユキノシタ科", "バラ科"], answer: 0, exp: "フキは「キク科フキ属」です。" },
+                { icon: "イチゴ", question: "イチゴは何科の植物？", choices: ["バラ科", "ナス科", "ウリ科", "ミカン科"], answer: 0, exp: "イチゴやリンゴは「バラ科」です。" },
+                { icon: "スイカ", question: "スイカは何科の植物？", choices: ["ウリ科", "ナス科", "ブドウ科", "トケイソウ科"], answer: 0, exp: "スイカは「ウリ科」のツル性一年草です。" },
+                { icon: "ワサビ", question: "ワサビは何科の植物？", choices: ["アブラナ科", "ショウガ科", "セリ科", "コショウ科"], answer: 0, exp: "ワサビは「アブラナ科ワサビ属」です。" },
+                { icon: "カブ", question: "カブは何科の野菜？", choices: ["アブラナ科", "セリ科", "ヒユ科", "キク科"], answer: 0, exp: "カブは「アブラナ科」です。" },
+                { icon: "ナガイモ", question: "ナガイモ（山芋）は何科の植物？", choices: ["ヤマノイモ科", "サトイモ科", "ヒルガオ科", "ユリ科"], answer: 0, exp: "ナガイモは「ヤマノイモ科」です。" }
+            ]
+        };
+
+        let scene, camera, renderer;
+        let playerVehicle;
+        let road, gridHelper;
+        let obstacles = [];
+        let particles = [];
+
+        function init3D() {
+            const container = document.getElementById('canvas-container');
+            container.innerHTML = '';
+
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x030712, 0.025);
+
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 3.5, 6);
+            camera.lookAt(0, 1, -10);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0x38bdf8, 1.2);
+            dirLight.position.set(5, 12, 5);
+            scene.add(dirLight);
+
+            // Hover Vehicle
+            const vehicleGroup = new THREE.Group();
+            
+            const bodyGeo = new THREE.BoxGeometry(1.2, 0.5, 2);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.8, roughness: 0.2 });
+            const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+            bodyMesh.position.y = 0.5;
+            vehicleGroup.add(bodyMesh);
+
+            const cockpitGeo = new THREE.BoxGeometry(0.8, 0.4, 0.9);
+            const cockpitMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+            const cockpitMesh = new THREE.Mesh(cockpitGeo, cockpitMat);
+            cockpitMesh.position.set(0, 0.8, -0.2);
+            vehicleGroup.add(cockpitMesh);
+
+            const thrusterGeo = new THREE.BoxGeometry(0.8, 0.2, 0.1);
+            const thrusterMat = new THREE.MeshBasicMaterial({ color: 0x34d399 });
+            const thrusterMesh = new THREE.Mesh(thrusterGeo, thrusterMat);
+            thrusterMesh.position.set(0, 0.5, 1.05);
+            vehicleGroup.add(thrusterMesh);
+
+            playerVehicle = vehicleGroup;
+            scene.add(playerVehicle);
+
+            // Highway Track
+            const roadGeo = new THREE.PlaneGeometry(12, 200);
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
+            road = new THREE.Mesh(roadGeo, roadMat);
+            road.rotation.x = -Math.PI / 2;
+            road.position.z = -80;
+            scene.add(road);
+
+            gridHelper = new THREE.GridHelper(12, 24, 0x38bdf8, 0x1e293b);
+            gridHelper.position.set(0, 0.02, -80);
+            gridHelper.scale.z = 8;
+            scene.add(gridHelper);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function spawnObstacle() {
+            if (gameState !== 'PLAYING') return;
+
+            const obstacleGroup = new THREE.Group();
+
+            const wallGeo = new THREE.BoxGeometry(3.5, 2.2, 0.8);
+            const wallMat = new THREE.MeshStandardMaterial({ 
+                color: 0xef4444, 
+                metalness: 0.5, 
+                roughness: 0.3,
+                emissive: 0x991b1b,
+                emissiveIntensity: 0.5
+            });
+            const wallMesh = new THREE.Mesh(wallGeo, wallMat);
+            wallMesh.position.y = 1;
+            obstacleGroup.add(wallMesh);
+
+            obstacleGroup.position.set(0, 0, -60);
+            obstacleGroup.userData = { passed: false };
+
+            scene.add(obstacleGroup);
+            obstacles.push(obstacleGroup);
+        }
+
+        function createSmashParticles(x, y, z) {
+            for (let i = 0; i < 35; i++) {
+                const geo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+                const mat = new THREE.MeshBasicMaterial({ 
+                    color: Math.random() > 0.5 ? 0x34d399 : 0x38bdf8 
+                });
+                const p = new THREE.Mesh(geo, mat);
+                p.position.set(x, y, z);
+                p.userData = {
+                    vx: (Math.random() - 0.5) * 0.4,
+                    vy: Math.random() * 0.4 + 0.1,
+                    vz: (Math.random() - 0.5) * 0.4,
+                    life: 1.0
+                };
+                scene.add(p);
+                particles.push(p);
+            }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.position.x += p.userData.vx;
+                p.position.y += p.userData.vy;
+                p.position.z += p.userData.vz;
+                p.userData.life -= 0.03;
+                p.scale.multiplyScalar(0.95);
+
+                if (p.userData.life <= 0) {
+                    scene.remove(p);
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function triggerQuizChallenge(obs, index) {
+            gameState = 'QUIZ';
+            currentQuizObstacle = { obs, index };
+
+            let category = 'easy';
+            let diffBadge = '初級：野菜当て (0-300m)';
+            if (distance > 800) {
+                category = 'hard';
+                diffBadge = '上級：科名・植物分類 (800m+)';
+            } else if (distance > 300) {
+                category = 'medium';
+                diffBadge = '中級：栄養・特徴 (300-800m)';
+            }
+
+            const list = quizQuestions[category];
+            const quiz = list[Math.floor(Math.random() * list.length)];
+            currentQuiz = quiz;
+
+            document.getElementById('quizDifficultyBadge').textContent = diffBadge;
+            document.getElementById('quizVegIcon').textContent = quiz.icon || '🥦';
+            document.getElementById('quizQuestion').textContent = quiz.question;
+
+            const choicesContainer = document.getElementById('quizChoices');
+            choicesContainer.innerHTML = '';
+
+            document.getElementById('quizExplanation').classList.add('hidden');
+
+            quiz.choices.forEach((choice, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full py-3 px-4 bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-cyan-400/60 rounded-xl font-bold text-sm text-slate-100 transition active:scale-95 text-left flex items-center justify-between group';
+                btn.innerHTML = `
+                    <span><span class="inline-block w-6 text-cyan-400 font-cyber">${idx + 1}.</span> ${choice}</span>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-500 group-hover:text-cyan-400 transition"></i>
+                `;
+                btn.onclick = () => checkAnswer(idx);
+                choicesContainer.appendChild(btn);
+            });
+
+            document.getElementById('quizModal').classList.remove('hidden');
+        }
+
+        function checkAnswer(selectedIdx) {
+            if (!currentQuiz) return;
+
+            const isCorrect = (selectedIdx === currentQuiz.answer);
+            const expBox = document.getElementById('quizExplanation');
+            const title = document.getElementById('quizResultTitle');
+            const body = document.getElementById('quizResultBody');
+
+            const buttons = document.querySelectorAll('#quizChoices button');
+            buttons.forEach(btn => btn.disabled = true);
+
+            expBox.classList.remove('hidden');
+
+            if (isCorrect) {
+                playSound('correct');
+                playSound('smash');
+
+                title.className = 'font-bold text-sm mb-1 text-emerald-400 flex items-center gap-1.5';
+                title.innerHTML = '<i class="fa-solid fa-circle-check"></i> 正解！粉砕突破！';
+                body.textContent = currentQuiz.exp;
+
+                const goldGain = 20 * (upgrades.powerLvl || 1);
+                cyberGold += goldGain;
+                totalSmashes++;
+
+                if (currentQuizObstacle) {
+                    const obsPos = currentQuizObstacle.obs.position;
+                    createSmashParticles(obsPos.x, obsPos.y, obsPos.z);
+                    scene.remove(currentQuizObstacle.obs);
+                    const idx = obstacles.indexOf(currentQuizObstacle.obs);
+                    if (idx !== -1) obstacles.splice(idx, 1);
+                }
+
+                // 連続衝突防止：近くに迫っている壁をクリアし、次の出現までの猶予を確保
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    if (obstacles[i].position.z > -35) {
+                        scene.remove(obstacles[i]);
+                        obstacles.splice(i, 1);
+                    }
+                }
+                spawnTimer = -6.0;
+
+                setTimeout(() => {
+                    document.getElementById('quizModal').classList.add('hidden');
+                    gameState = 'PLAYING';
+                    showToast(`+${goldGain} $ ゴールド獲得!`, 'success');
+                }, 1500);
+
+            } else {
+                playSound('wrong');
+                lives--;
+                updateLivesUI();
+
+                title.className = 'font-bold text-sm mb-1 text-rose-400 flex items-center gap-1.5';
+                title.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> 不正解... (正解: ${currentQuiz.choices[currentQuiz.answer]})`;
+                body.textContent = currentQuiz.exp;
+
+                setTimeout(() => {
+                    document.getElementById('quizModal').classList.add('hidden');
+                    if (lives <= 0) {
+                        handleGameOver();
+                    } else {
+                        gameState = 'PLAYING';
+                    }
+                }, 2500);
+            }
+        }
+
+        function updateLivesUI() {
+            const container = document.getElementById('livesContainer');
+            if (!container) return;
+            container.innerHTML = '';
+            for (let i = 0; i < 3; i++) {
+                const heart = document.createElement('i');
+                if (i < lives) {
+                    heart.className = 'fa-solid fa-heart animate-bounce text-rose-500';
+                } else {
+                    heart.className = 'fa-regular fa-heart text-slate-600';
+                }
+                container.appendChild(heart);
+            }
+        }
+
+        function handleGameOver() {
+            gameState = 'GAMEOVER';
+
+            if (distance > highScore) {
+                highScore = distance;
+                showToast('新記録達成！', 'success');
+            }
+
+            saveUserData();
+
+            document.getElementById('hudOverlay').classList.add('hidden');
+            document.getElementById('mobileControls').classList.add('hidden');
+
+            document.getElementById('goDistance').textContent = `${distance} m`;
+            document.getElementById('goGold').textContent = `+${cyberGold} $`;
+            document.getElementById('goSmashes').textContent = totalSmashes;
+            document.getElementById('goHighScore').textContent = `${highScore} m`;
+
+            document.getElementById('gameOverModal').classList.remove('hidden');
+        }
+
+        let spawnTimer = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (gameState === 'PLAYING') {
+                speed = Math.min(maxSpeed, speed + 0.0005);
+                distance += Math.round(speed * 10);
+
+                document.getElementById('hudDistance').textContent = distance;
+                document.getElementById('hudSpeed').textContent = Math.round(speed * 200);
+
+                playerVehicle.position.x = 0;
+                playerVehicle.rotation.z = 0;
+
+                gridHelper.position.z += speed * 5;
+                if (gridHelper.position.z > -40) gridHelper.position.z = -80;
+
+                // 壁の生成間隔を広げた（4.0 -> 12.0）
+                spawnTimer += speed;
+                if (spawnTimer > 12.0) {
+                    spawnObstacle();
+                    spawnTimer = 0;
+                }
+
+                for (let i = obstacles.length - 1; i >= 0; i--) {
+                    const obs = obstacles[i];
+                    obs.position.z += speed * 12;
+
+                    if (Math.abs(obs.position.z - playerVehicle.position.z) < 1.2) {
+                        triggerQuizChallenge(obs, i);
+                        break;
+                    }
+
+                    if (obs.position.z > 5) {
+                        scene.remove(obs);
+                        obstacles.splice(i, 1);
+                    }
+                }
+            }
+
+            updateParticles();
+            renderer.render(scene, camera);
+        }
+
+        function initGame() {
+            initAudio();
+            gameState = 'PLAYING';
+            distance = 0;
+            speed = baseSpeed;
+            lives = 3;
+            totalSmashes = 0;
+            spawnTimer = -3.0; // ゲーム開始直後も猶予を持たせる
+            playerVehicle.position.x = 0;
+
+            obstacles.forEach(obs => scene.remove(obs));
+            obstacles = [];
+
+            updateLivesUI();
+            document.getElementById('hudGold').textContent = cyberGold;
+
+            document.getElementById('menuOverlay').classList.add('opacity-0', 'pointer-events-none');
+            document.getElementById('gameOverModal').classList.add('hidden');
+            document.getElementById('garageModal').classList.add('hidden');
+            
+            document.getElementById('hudOverlay').classList.remove('hidden');
+            document.getElementById('mobileControls').classList.remove('hidden');
+        }
+
+        document.getElementById('startGameBtn').addEventListener('click', initGame);
+        document.getElementById('retryBtn').addEventListener('click', initGame);
+
+        document.getElementById('backToMenuBtn').addEventListener('click', () => {
+            document.getElementById('gameOverModal').classList.add('hidden');
+            const menuOverlay = document.getElementById('menuOverlay');
+            menuOverlay.classList.remove('opacity-0', 'pointer-events-none');
+            updateMenuUI();
+        });
+
+        document.getElementById('openGarageBtn').addEventListener('click', () => {
+            document.getElementById('garageGold').textContent = cyberGold;
+            document.getElementById('garageModal').classList.remove('hidden');
+        });
+
+        document.getElementById('garageFromGameOverBtn').addEventListener('click', () => {
+            document.getElementById('gameOverModal').classList.add('hidden');
+            document.getElementById('garageGold').textContent = cyberGold;
+            document.getElementById('garageModal').classList.remove('hidden');
+        });
+
+        document.getElementById('closeGarageBtn').addEventListener('click', () => {
+            document.getElementById('garageModal').classList.add('hidden');
+            updateMenuUI();
+        });
+
+        function buyUpgrade(type) {
+            if (type === 'speed') {
+                const cost = upgrades.speedLvl * 100;
+                if (cyberGold >= cost) {
+                    cyberGold -= cost;
+                    upgrades.speedLvl++;
+                    maxSpeed += 0.1;
+                    showToast("最高速度がアップしました！", "success");
+                } else {
+                    showToast("ゴールドが不足しています", "error");
+                }
+            } else if (type === 'power') {
+                const cost = upgrades.powerLvl * 150;
+                if (cyberGold >= cost) {
+                    cyberGold -= cost;
+                    upgrades.powerLvl++;
+                    showToast("ゴールド倍率がアップしました！", "success");
+                } else {
+                    showToast("ゴールドが不足しています", "error");
+                }
+            }
+
+            document.getElementById('garageGold').textContent = cyberGold;
+            document.getElementById('lvlSpeed').textContent = upgrades.speedLvl;
+            document.getElementById('costSpeed').textContent = upgrades.speedLvl * 100;
+            document.getElementById('lvlPower').textContent = upgrades.powerLvl;
+            document.getElementById('costPower').textContent = upgrades.powerLvl * 150;
+            saveUserData();
+        }
+
+        function updateMenuUI() {
+            document.getElementById('menuHighScore').textContent = `${highScore} m`;
+            document.getElementById('menuGold').textContent = `${cyberGold} $`;
+        }
+
+        function saveUserData() {
+            const data = {
+                highScore,
+                cyberGold,
+                totalSmashes,
+                upgrades
+            };
+
+            localStorage.setItem('hyper_smash_runner_data', JSON.stringify(data));
+
+            if (window.currentUser && window.firebaseDb) {
+                const userRef = doc(window.firebaseDb, 'artifacts', 'hyper-smash-runner', 'users', window.currentUser.uid, 'data', 'stats');
+                setDoc(userRef, data, { merge: true }).catch(err => console.warn("Firestore save error", err));
+            }
+        }
+
+        function loadLocalData() {
+            const raw = localStorage.getItem('hyper_smash_runner_data');
+            if (raw) {
+                const data = JSON.parse(raw);
+                highScore = data.highScore || 0;
+                cyberGold = data.cyberGold || 0;
+                totalSmashes = data.totalSmashes || 0;
+                upgrades = data.upgrades || { speedLvl: 1, powerLvl: 1 };
+            }
+            updateMenuUI();
+        }
+
+        async function loadCloudData(uid) {
+            try {
+                const userRef = doc(window.firebaseDb, 'artifacts', 'hyper-smash-runner', 'users', uid, 'data', 'stats');
+                const snap = await getDoc(userRef);
+                if (snap.exists()) {
+                    const data = snap.data();
+                    highScore = data.highScore || 0;
+                    cyberGold = data.cyberGold || 0;
+                    totalSmashes = data.totalSmashes || 0;
+                    upgrades = data.upgrades || { speedLvl: 1, powerLvl: 1 };
+                } else {
+                    loadLocalData();
+                    saveUserData();
+                }
+            } catch (err) {
+                console.warn("Firestore load fallback to local", err);
+                loadLocalData();
+            }
+            updateMenuUI();
+        }
+
+        function showToast(msg, type = "info") {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = `fixed bottom-6 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl text-xs font-bold shadow-xl transition-all duration-300 ${
+                type === 'success' ? 'bg-emerald-600 text-white' :
+                type === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-800 text-cyan-300 border border-cyan-500/40'
+            }`;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2000);
+        }
+
+        window.addEventListener('load', () => {
+            init3D();
+            loadLocalData();
+            animate();
+        });
+    </script>
 </body>
 </html>
