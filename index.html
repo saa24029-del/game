@@ -206,9 +206,14 @@
                 <button id="startGameBtn" class="w-full py-4 bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-500 hover:brightness-110 active:scale-95 text-slate-950 font-black text-lg tracking-wider rounded-2xl shadow-lg shadow-emerald-500/25 transition flex items-center justify-center gap-2 animate-pulse-glow">
                     <i class="fa-solid fa-play"></i> GAME START
                 </button>
-                <button id="openGarageBtn" class="w-full py-3 bg-slate-900/90 hover:bg-slate-800 active:scale-95 border border-slate-700 text-slate-200 font-bold rounded-2xl transition flex items-center justify-center gap-2 text-sm">
-                    <i class="fa-solid fa-wrench text-amber-400"></i> ガレージ（マシン強化）
-                </button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="openGarageBtn" class="py-3 bg-slate-900/90 hover:bg-slate-800 active:scale-95 border border-slate-700 text-slate-200 font-bold rounded-2xl transition flex items-center justify-center gap-2 text-xs">
+                        <i class="fa-solid fa-wrench text-amber-400"></i> マシン強化
+                    </button>
+                    <button id="openHistoryBtn" class="py-3 bg-slate-900/90 hover:bg-slate-800 active:scale-95 border border-slate-700 text-slate-200 font-bold rounded-2xl transition flex items-center justify-center gap-2 text-xs">
+                        <i class="fa-solid fa-clock-rotate-left text-cyan-400"></i> 走行履歴
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -342,6 +347,27 @@
         </div>
     </div>
 
+    <!-- Play History Modal -->
+    <div id="historyModal" class="absolute inset-0 z-30 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md hidden">
+        <div class="cyber-card w-full max-w-md p-6 rounded-3xl border-cyan-500/40 flex flex-col gap-4 max-h-[85vh]">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-cyan-400 text-lg"></i>
+                    <h2 class="text-lg font-bold font-cyber text-white">PLAY HISTORY</h2>
+                </div>
+                <span class="text-xs font-cyber text-slate-400">直近20件</span>
+            </div>
+
+            <div id="historyListContainer" class="flex flex-col gap-2 overflow-y-auto pr-1 max-h-[50vh]">
+                <!-- Dynamic history items -->
+            </div>
+
+            <button id="closeHistoryBtn" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition mt-auto">
+                TOP画面に戻る
+            </button>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-xl text-xs font-bold bg-slate-800 text-white border border-slate-700 shadow-xl opacity-0 pointer-events-none transition-all duration-300">
         Notification
@@ -361,6 +387,10 @@
         let upgrades = { speedLvl: 1, powerLvl: 1 };
         let currentQuiz = null;
         let currentQuizObstacle = null;
+
+        let runHistory = [];
+        let runStartGold = 0;
+        let runStartSmashes = 0;
 
         const COLOR_PALETTES = [
             { id: 'cyan', name: 'サイバーシアン', price: 0, hex: 0x0284c7, cockpit: 0x38bdf8, thruster: 0x34d399, previewHex: '#0284c7' },
@@ -783,6 +813,24 @@
                 showToast('新記録達成！', 'success');
             }
 
+            // 走行履歴の作成＆保存
+            const gainedGold = Math.max(0, cyberGold - runStartGold);
+            const runSmashes = Math.max(0, totalSmashes - runStartSmashes);
+            const now = new Date();
+            const dateStr = `${now.getMonth() + 1}/${now.getDate()} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            runHistory.unshift({
+                id: Date.now(),
+                date: dateStr,
+                distance: distance,
+                gold: gainedGold,
+                smashes: runSmashes
+            });
+
+            if (runHistory.length > 20) {
+                runHistory = runHistory.slice(0, 20);
+            }
+
             saveUserData();
 
             document.getElementById('hudOverlay').classList.add('hidden');
@@ -849,7 +897,8 @@
             distance = 0;
             speed = baseSpeed;
             lives = 3;
-            totalSmashes = 0;
+            runStartGold = cyberGold;
+            runStartSmashes = totalSmashes;
             spawnTimer = -5.0; // ゲーム開始直後もゆとりを持たせる
             playerVehicle.position.x = 0;
 
@@ -862,6 +911,7 @@
             document.getElementById('menuOverlay').classList.add('opacity-0', 'pointer-events-none');
             document.getElementById('gameOverModal').classList.add('hidden');
             document.getElementById('garageModal').classList.add('hidden');
+            document.getElementById('historyModal').classList.add('hidden');
             
             document.getElementById('hudOverlay').classList.remove('hidden');
             document.getElementById('mobileControls').classList.remove('hidden');
@@ -898,6 +948,58 @@
             gameState = 'MENU';
             updateMenuUI();
         });
+
+        document.getElementById('openHistoryBtn').addEventListener('click', () => {
+            renderHistoryList();
+            document.getElementById('historyModal').classList.remove('hidden');
+        });
+
+        document.getElementById('closeHistoryBtn').addEventListener('click', () => {
+            document.getElementById('historyModal').classList.add('hidden');
+            const menuOverlay = document.getElementById('menuOverlay');
+            menuOverlay.classList.remove('opacity-0', 'pointer-events-none');
+            gameState = 'MENU';
+            updateMenuUI();
+        });
+
+        function renderHistoryList() {
+            const container = document.getElementById('historyListContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            if (runHistory.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8 text-slate-500 text-xs">
+                        <i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-600 block"></i>
+                        まだ走行データがありません。<br>ゲームをプレイするとここに記録されます！
+                    </div>
+                `;
+                return;
+            }
+
+            runHistory.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-900/80 p-3 rounded-2xl border border-slate-800 flex justify-between items-center text-xs';
+                card.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <span class="font-cyber font-bold text-slate-500 text-[10px] w-5 text-right">#${runHistory.length - index}</span>
+                        <div>
+                            <div class="font-bold text-white flex items-center gap-2">
+                                <span class="font-cyber text-cyan-300 text-sm">${item.distance} m</span>
+                                <span class="text-[10px] text-slate-400">${item.date}</span>
+                            </div>
+                            <div class="text-[10px] text-slate-400 mt-0.5">
+                                粉砕: <strong class="text-emerald-400">${item.smashes}</strong> 個
+                            </div>
+                        </div>
+                    </div>
+                    <div class="font-cyber font-bold text-amber-400 text-xs">
+                        +${item.gold} $
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
 
         function applyVehicleColor(colorId) {
             const palette = COLOR_PALETTES.find(p => p.id === colorId) || COLOR_PALETTES[0];
@@ -1009,7 +1111,8 @@
                 totalSmashes,
                 upgrades,
                 unlockedColors,
-                equippedColor
+                equippedColor,
+                runHistory
             };
 
             localStorage.setItem('hyper_smash_runner_data', JSON.stringify(data));
@@ -1030,6 +1133,7 @@
                 upgrades = data.upgrades || { speedLvl: 1, powerLvl: 1 };
                 unlockedColors = data.unlockedColors || ['cyan'];
                 equippedColor = data.equippedColor || 'cyan';
+                runHistory = data.runHistory || [];
             }
             applyVehicleColor(equippedColor);
             updateMenuUI();
@@ -1051,6 +1155,7 @@
                     upgrades = data.upgrades || { speedLvl: 1, powerLvl: 1 };
                     unlockedColors = data.unlockedColors || ['cyan'];
                     equippedColor = data.equippedColor || 'cyan';
+                    runHistory = data.runHistory || [];
                 } else {
                     loadLocalData();
                     saveUserData();
