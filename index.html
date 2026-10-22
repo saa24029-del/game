@@ -355,7 +355,11 @@
                     <i class="fa-solid fa-clock-rotate-left text-cyan-400 text-lg"></i>
                     <h2 class="text-lg font-bold font-cyber text-white">PLAY HISTORY</h2>
                 </div>
-                <span class="text-xs font-cyber text-slate-400">直近20件</span>
+                <div class="flex items-center gap-2">
+                    <button id="clearHistoryBtn" onclick="clearRunHistory()" class="px-2.5 py-1 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-bold text-[10px] transition active:scale-95 flex items-center gap-1">
+                        <i class="fa-solid fa-trash text-xs"></i> 履歴消去
+                    </button>
+                </div>
             </div>
 
             <div id="historyListContainer" class="flex flex-col gap-2 overflow-y-auto pr-1 max-h-[50vh]">
@@ -993,12 +997,40 @@
                             </div>
                         </div>
                     </div>
-                    <div class="font-cyber font-bold text-amber-400 text-xs">
-                        +${item.gold} $
+                    <div class="flex items-center gap-3">
+                        <div class="font-cyber font-bold text-amber-400 text-xs">
+                            +${item.gold} $
+                        </div>
+                        <button onclick="deleteHistoryItem(${item.id || 'null'}, ${index})" class="text-slate-500 hover:text-rose-400 p-1.5 transition rounded-lg hover:bg-slate-800" title="この記録を削除">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
                     </div>
                 `;
                 container.appendChild(card);
             });
+        }
+
+        function deleteHistoryItem(id, index) {
+            if (id) {
+                runHistory = runHistory.filter(item => item.id !== id);
+            } else {
+                runHistory.splice(index, 1);
+            }
+            saveUserData();
+            renderHistoryList();
+            showToast("選択した履歴を削除しました", "info");
+        }
+
+        function clearRunHistory() {
+            if (!runHistory || runHistory.length === 0) {
+                showToast("消去する履歴がありません", "info");
+                return;
+            }
+
+            runHistory = [];
+            saveUserData();
+            renderHistoryList();
+            showToast("全走行履歴を消去しました", "info");
         }
 
         function applyVehicleColor(colorId) {
