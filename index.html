@@ -18,6 +18,11 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Expose Firestore methods globally
+        window.doc = doc;
+        window.getDoc = getDoc;
+        window.setDoc = setDoc;
+
         // Firebase Configuration
         const firebaseConfig = { 
             apiKey: "AIzaSyAeJF5n56TtA4WEU7cZi_DEpKitsMu0tUs", 
@@ -1009,9 +1014,9 @@
 
             localStorage.setItem('hyper_smash_runner_data', JSON.stringify(data));
 
-            if (window.currentUser && window.firebaseDb) {
-                const userRef = doc(window.firebaseDb, 'artifacts', 'hyper-smash-runner', 'users', window.currentUser.uid, 'data', 'stats');
-                setDoc(userRef, data, { merge: true }).catch(err => console.warn("Firestore save error", err));
+            if (window.currentUser && window.firebaseDb && window.doc && window.setDoc) {
+                const userRef = window.doc(window.firebaseDb, 'artifacts', 'hyper-smash-runner', 'users', window.currentUser.uid, 'data', 'stats');
+                window.setDoc(userRef, data, { merge: true }).catch(err => console.warn("Firestore save error", err));
             }
         }
 
@@ -1032,8 +1037,12 @@
 
         async function loadCloudData(uid) {
             try {
-                const userRef = doc(window.firebaseDb, 'artifacts', 'hyper-smash-runner', 'users', uid, 'data', 'stats');
-                const snap = await getDoc(userRef);
+                if (!window.doc || !window.getDoc || !window.firebaseDb) {
+                    loadLocalData();
+                    return;
+                }
+                const userRef = window.doc(window.firebaseDb, 'artifacts', 'hyper-smash-runner', 'users', uid, 'data', 'stats');
+                const snap = await window.getDoc(userRef);
                 if (snap.exists()) {
                     const data = snap.data();
                     highScore = data.highScore || 0;
