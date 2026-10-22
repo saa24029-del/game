@@ -183,7 +183,7 @@
                 HYPER SMASH<br><span class="text-3xl md:text-5xl text-white">野菜クイズ粉砕ラン</span>
             </h1>
             <p class="text-slate-400 text-xs md:text-sm max-w-sm mt-2 leading-relaxed">
-                障害物に体当たりして野菜クイズを解け！<br>正解で壁を爆破粉砕！全75問をクリアしてハイスコアを目指せ！
+                障害物に体当たりして野菜クイズを解け！<br>ライフが無くなるとゲームオーバー！ハイスコアを目指して走り抜けよう！
             </p>
 
             <div class="grid grid-cols-2 gap-3 w-full max-w-xs mt-6">
@@ -322,6 +322,15 @@
                 </div>
             </div>
 
+            <div class="border-t border-slate-800 pt-3 flex flex-col gap-2">
+                <div class="text-xs font-bold text-cyan-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-palette"></i> マシンカラー変更
+                </div>
+                <div id="garageColorList" class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                    <!-- Dynamic color cards -->
+                </div>
+            </div>
+
             <button id="closeGarageBtn" class="w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs transition">
                 TOP画面に戻る
             </button>
@@ -347,6 +356,19 @@
         let upgrades = { speedLvl: 1, powerLvl: 1 };
         let currentQuiz = null;
         let currentQuizObstacle = null;
+
+        const COLOR_PALETTES = [
+            { id: 'cyan', name: 'サイバーシアン', price: 0, hex: 0x0284c7, cockpit: 0x38bdf8, thruster: 0x34d399, previewHex: '#0284c7' },
+            { id: 'emerald', name: 'ネオンエメラルド', price: 200, hex: 0x059669, cockpit: 0x34d399, thruster: 0xfacc15, previewHex: '#059669' },
+            { id: 'orange', name: 'サンセットオレンジ', price: 400, hex: 0xea580c, cockpit: 0xfbbf24, thruster: 0xef4444, previewHex: '#ea580c' },
+            { id: 'purple', name: 'ハイパーパープル', price: 600, hex: 0x7c3aed, cockpit: 0xc084fc, thruster: 0x38bdf8, previewHex: '#7c3aed' },
+            { id: 'pink', name: 'ネオンピンク', price: 1000, hex: 0xdb2777, cockpit: 0xf472b6, thruster: 0xa855f7, previewHex: '#db2777' },
+            { id: 'gold', name: 'サイバーゴールド', price: 1500, hex: 0xd97706, cockpit: 0xfde047, thruster: 0x38bdf8, previewHex: '#d97706' }
+        ];
+        let unlockedColors = ['cyan'];
+        let equippedColor = 'cyan';
+
+        let bodyMat, cockpitMat, thrusterMat;
 
         let audioCtx = null;
 
@@ -398,85 +420,85 @@
 
         const quizQuestions = {
             easy: [ // 初級: 野菜当て (25問)
-                { icon: "🥦", question: "この野菜の名前は？", choices: ["ブロッコリー", "カリフラワー", "キャベツ", "アスパラガス"], answer: 0, exp: "ブロッコリーはアブラナ科の野菜で、緑色の花蕾（からい）を食べる野菜です。" },
-                { icon: "🥕", question: "この野菜の名前は？", choices: ["パプリカ", "ニンジン", "ダイコン", "ゴボウ"], answer: 1, exp: "ニンジンはセリ科の根菜で、β-カロテン（ビタミンA原）が非常に豊富です。" },
-                { icon: "🍅", question: "この野菜の名前は？", choices: ["イチゴ", "パプリカ", "トマト", "ナス"], answer: 2, exp: "トマトはナス科の果菜類で、抗酸化作用のあるリコピンが豊富に含まれます。" },
+                { icon: "🥦", question: "この野菜の名前は？", choices: ["カリフラワー", "ブロッコリー", "キャベツ", "アスパラガス"], answer: 1, exp: "ブロッコリーはアブラナ科の野菜で、緑色の花蕾（からい）を食べる野菜です。" },
+                { icon: "🥕", question: "この野菜の名前は？", choices: ["パプリカ", "ダイコン", "ニンジン", "ゴボウ"], answer: 2, exp: "ニンジンはセリ科の根菜で、β-カロテン（ビタミンA原）が非常に豊富です。" },
+                { icon: "🍅", question: "この野菜の名前は？", choices: ["イチゴ", "パプリカ", "ナス", "トマト"], answer: 3, exp: "トマトはナス科の果菜類で、抗酸化作用のあるリコピンが豊富に含まれます。" },
                 { icon: "🍆", question: "この野菜の名前は？", choices: ["サツマイモ", "ナス", "ズッキーニ", "ブドウ"], answer: 1, exp: "ナスはナス科の野菜で、皮に含まれる紫色の色素はナスニン（アントシアニン系）です。" },
-                { icon: "🌽", question: "この野菜の名前は？", choices: ["トウモロコシ", "ヤングコーン", "キビ", "タケノコ"], answer: 0, exp: "トウモロコシはイネ科の一年草で、世界三大穀物の一つでもあります。" },
-                { icon: "🥬", question: "この野菜の名前は？", choices: ["ホウレンソウ", "レタス", "白菜", "キャベツ"], answer: 1, exp: "レタスはキク科の葉菜類で、水分が約95%含まれておりシャキシャキした食感が特徴です。" },
+                { icon: "🌽", question: "この野菜の名前は？", choices: ["ヤングコーン", "キビ", "トウモロコシ", "タケノコ"], answer: 2, exp: "トウモロコシはイネ科の一年草で、世界三大穀物の一つでもあります。" },
+                { icon: "🥬", question: "この野菜の名前は？", choices: ["ホウレンソウ", "白菜", "キャベツ", "レタス"], answer: 3, exp: "レタスはキク科の葉菜類で、水分が約95%含まれておりシャキシャキした食感が特徴です。" },
                 { icon: "🥒", question: "この野菜の名前は？", choices: ["ゴーヤ", "ズッキーニ", "キュウリ", "トウガン"], answer: 2, exp: "キュウリはウリ科の野菜で、ギネスブックに「最もカロリーが低い果実」として掲載されています。" },
                 { icon: "🧄", question: "この野菜の名前は？", choices: ["ニンニク", "タマネギ", "ラッキョウ", "ショウガ"], answer: 0, exp: "ニンニクはヒガンバナ科ネギ属で、においの成分アリシンには強い抗菌・滋養強壮効果があります。" },
-                { icon: "🥔", question: "この野菜の名前は？", choices: ["ジャガイモ", "サツマイモ", "サトイモ", "ナガイモ"], answer: 0, exp: "ジャガイモはナス科の地下茎（塊茎）で、ビタミンCが加熱に強い特徴があります。" },
-                { icon: "🧅", question: "この野菜の名前は？", choices: ["ニンニク", "タマネギ", "ペコロス", "カブ"], answer: 1, exp: "タマネギはヒガンバナ科ネギ属で、切ると涙が出るのは硫化アリル（アリシン）の影響です。" },
+                { icon: "🥔", question: "この野菜の名前は？", choices: ["サツマイモ", "ジャガイモ", "サトイモ", "ナガイモ"], answer: 1, exp: "ジャガイモはナス科の地下茎（塊茎）で、ビタミンCが加熱に強い特徴があります。" },
+                { icon: "🧅", question: "この野菜の名前は？", choices: ["ニンニク", "ペコロス", "カブ", "タマネギ"], answer: 3, exp: "タマネギはヒガンバナ科ネギ属で、切ると涙が出るのは硫化アリル（アリシン）の影響です。" },
                 { icon: "🍠", question: "この野菜の名前は？", choices: ["ジャガイモ", "サツマイモ", "ヤマイモ", "タロイモ"], answer: 1, exp: "サツマイモはヒルガオ科で、甘みの成分であるマルトース（麦芽糖）は加熱によって増えます。" },
-                { icon: "🫑", question: "この野菜の名前は？", choices: ["ピーマン", "ゴーヤ", "ズッキーニ", "アボカド"], answer: 0, exp: "ピーマンはナス科のトウガラシの甘味種です。ビタミンCが非常に豊富に含まれます。" },
-                { icon: "🥑", question: "この野菜（果実）の名前は？", choices: ["アボカド", "ズッキーニ", "ライム", "キウイ"], answer: 0, exp: "アボカドはクスノキ科で「森のバター」と呼ばれ、良質な脂質（オレイン酸）が豊富です。" },
+                { icon: "🫑", question: "この野菜の名前は？", choices: ["ゴーヤ", "ピーマン", "ズッキーニ", "アボカド"], answer: 1, exp: "ピーマンはナス科のトウガラシの甘味種です。ビタミンCが非常に豊富に含まれます。" },
+                { icon: "🥑", question: "この野菜（果実）の名前は？", choices: ["ズッキーニ", "ライム", "アボカド", "キウイ"], answer: 2, exp: "アボカドはクスノキ科で「森のバター」と呼ばれ、良質な脂質（オレイン酸）が豊富です。" },
                 { icon: "🍄", question: "この食材（キノコ）の名前は？", choices: ["シイタケ", "マッシュルーム", "エノキ", "エリンギ"], answer: 1, exp: "マッシュルームはハラタケ科のキノコで、世界で最も多く生産・消費されているキノコです。" },
-                { icon: "🫛", question: "この野菜（豆類）の名前は？", choices: ["エダマメ", "サヤエンドウ", "インゲン", "ソラマメ"], answer: 0, exp: "エダマメはマメ科で、大豆（ダイズ）を未成熟なうちに収穫したものです。" },
-                { icon: "🎃", question: "この野菜の名前は？", choices: ["カボチャ", "ズッキーニ", "パプリカ", "メロン"], answer: 0, exp: "カボチャはウリ科の野菜で、β-カロテン、ビタミンE、ビタミンCが豊富な緑黄色野菜です。" },
+                { icon: "🫛", question: "この野菜（豆類）の名前は？", choices: ["サヤエンドウ", "インゲン", "エダマメ", "ソラマメ"], answer: 2, exp: "エダマメはマメ科で、大豆（ダイズ）を未成熟なうちに収穫したものです。" },
+                { icon: "🎃", question: "この野菜の名前は？", choices: ["ズッキーニ", "パプリカ", "メロン", "カボチャ"], answer: 3, exp: "カボチャはウリ科の野菜で、β-カロテン、ビタミンE、ビタミンCが豊富な緑黄色野菜です。" },
                 { icon: "🫚", question: "この野菜（薬味）の名前は？", choices: ["ショウガ", "ミョウガ", "ワサビ", "ニンニク"], answer: 0, exp: "ショウガはショウガ科の根茎で、辛味成分ジンゲロールやショウガオールが含まれます。" },
-                { icon: "🌱", question: "発芽したばかりの若芽野菜を何と呼ぶ？", choices: ["スプラウト", "マイクログリーン", "ベビーリーフ", "モヤシ"], answer: 0, exp: "スプラウト（発芽野菜）は成長に必要な栄養素が凝縮されています。" },
-                { icon: "🥬", question: "中華料理でよく使われる、軸が白い葉菜類は？", choices: ["チンゲンサイ", "コマツナ", "ホウレンソウ", "水菜"], answer: 0, exp: "チンゲンサイはアブラナ科の野菜で、煮くずれしにくくシャキシャキ感が魅力です。" },
-                { icon: "🌿", question: "薬味に使われる爽やかな香りの葉は？", choices: ["シソ（大葉）", "パクチー", "バジル", "パセリ"], answer: 0, exp: "シソ（紫蘇）はシソ科の野菜で、ペリルアルデヒドという強力な防腐効果のある香り成分を持ちます。" },
+                { icon: "🌱", question: "発芽したばかりの若芽野菜を何と呼ぶ？", choices: ["マイクログリーン", "スプラウト", "ベビーリーフ", "モヤシ"], answer: 1, exp: "スプラウト（発芽野菜）は成長に必要な栄養素が凝縮されています。" },
+                { icon: "🥬", question: "中華料理でよく使われる、軸が白い葉菜類は？", choices: ["コマツナ", "ホウレンソウ", "チンゲンサイ", "水菜"], answer: 2, exp: "チンゲンサイはアブラナ科の野菜で、煮くずれしにくくシャキシャキ感が魅力です。" },
+                { icon: "🌿", question: "薬味に使われる爽やかな香りの葉は？", choices: ["パクチー", "バジル", "パセリ", "シソ（大葉）"], answer: 3, exp: "シソ（紫蘇）はシソ科の野菜で、ペリルアルデヒドという強力な防腐効果のある香り成分を持ちます。" },
                 { icon: "🎋", question: "春が旬で、竹の若い芽である食材は？", choices: ["タケノコ", "アスパラガス", "ウド", "フキ"], answer: 0, exp: "タケノコ（竹の子）はイネ科タケ亜科の芽で、あく抜きには米ぬかが使われます。" },
                 { icon: "🥬", question: "お鍋の定番「ハクサイ（白菜）」は何科？", choices: ["アブラナ科", "ウリ科", "ナス科", "キク科"], answer: 0, exp: "ハクサイはアブラナ科の野菜で、キャベツやカブの仲間です。" },
-                { icon: "根", question: "白い大きな根菜「ダイコン」は何科？", choices: ["アブラナ科", "セリ科", "ユリ科", "ナス科"], answer: 0, exp: "ダイコンはアブラナ科で、消化を助ける酵素（ジアスターゼ）を含みます。" },
-                { icon: "🌱", question: "「モヤシ」の主な原料は？", choices: ["緑豆（リョクトウ）", "小豆（アズキ）", "小麦", "トウモロコシ"], answer: 0, exp: "一般的に市場に出回るモヤシの多くは「緑豆（りょくとう）」から作られます。" },
-                { icon: "🍠", question: "サトイモは何科の野菜？", choices: ["サトイモ科", "ヒルガオ科", "ナス科", "ヤマノイモ科"], answer: 0, exp: "サトイモはサトイモ科で、ぬめり成分（ガラクタンなど）が特徴です。" }
+                { icon: "根", question: "白い大きな根菜「ダイコン」は何科？", choices: ["セリ科", "アブラナ科", "ユリ科", "ナス科"], answer: 1, exp: "ダイコンはアブラナ科で、消化を助ける酵素（ジアスターゼ）を含みます。" },
+                { icon: "🌱", question: "「モヤシ」の主な原料は？", choices: ["小豆（アズキ）", "小麦", "緑豆（リョクトウ）", "トウモロコシ"], answer: 2, exp: "一般的に市場に出回るモヤシの多くは「緑豆（りょくとう）」から作られます。" },
+                { icon: "🍠", question: "サトイモは何科の野菜？", choices: ["ヒルガオ科", "ナス科", "ヤマノイモ科", "サトイモ科"], answer: 3, exp: "サトイモはサトイモ科で、ぬめり成分（ガラクタンなど）が特徴です。" }
             ],
             medium: [ // 中級: 栄養・調理・特徴 (25問)
-                { icon: "🍅", question: "トマトの赤色成分で、強い抗酸化作用を持つ栄養素は？", choices: ["リコピン", "ベータカロテン", "アントシアニン", "カプサイシン"], answer: 0, exp: "リコピンはカロテノイドの一種で、油と一緒に加熱調理すると吸収率が高まります。" },
-                { icon: "🥕", question: "ニンジンに豊富に含まれ、体内でビタミンAに変わる成分は？", choices: ["β-カロテン", "リコピン", "ビタミンC", "アリシン"], answer: 0, exp: "β-カロテンは緑黄色野菜の代表的な栄養素で、油と一緒に摂ると吸収が良くなります。" },
-                { icon: "🥦", question: "ブロッコリーのブロッコリー花蕾（上の部分）は植物のどこ？", choices: ["蕾（つぼみ）の集まり", "葉", "果実", "種子"], answer: 0, exp: "ブロッコリーは開花前の蕾（つぼみ）と茎を食べる野菜です。" },
+                { icon: "🍅", question: "トマトの赤色成分で、強い抗酸化作用を持つ栄養素は？", choices: ["ベータカロテン", "リコピン", "アントシアニン", "カプサイシン"], answer: 1, exp: "リコピンはカロテノイドの一種で、油と一緒に加熱調理すると吸収率が高まります。" },
+                { icon: "🥕", question: "ニンジンに豊富に含まれ、体内でビタミンAに変わる成分は？", choices: ["リコピン", "ビタミンC", "β-カロテン", "アリシン"], answer: 2, exp: "β-カロテンは緑黄色野菜の代表的な栄養素で、油と一緒に摂ると吸収が良くなります。" },
+                { icon: "🥦", question: "ブロッコリーのブロッコリー花蕾（上の部分）は植物のどこ？", choices: ["葉", "果実", "種子", "蕾（つぼみ）の集まり"], answer: 3, exp: "ブロッコリーは開花前の蕾（つぼみ）と茎を食べる野菜です。" },
                 { icon: "🥔", question: "ジャガイモの芽や緑化した皮に含まれる有毒物質は？", choices: ["ソラニン", "ムスカリン", "テトロドトキシン", "アミグダリン"], answer: 0, exp: "ソラニンやチャコニンは天然毒素で、芽や緑色部分はしっかり取り除く必要があります。" },
-                { icon: "🧅", question: "タマネギを切ったときに目が痛くなる原因物質は？", choices: ["硫化アリル", "クエン酸", "カプサイシン", "グルタミン酸"], answer: 0, exp: "硫化アリル（アリシンに変化）が蒸発して目を刺激します。" },
-                { icon: "🥬", question: "ホウレンソウに多く含まれ、貧血予防に効果的なミネラルは？", choices: ["鉄分", "カルシウム", "亜鉛", "マグネシウム"], answer: 0, exp: "ホウレンソウには鉄分や葉酸が豊富に含まれます。" },
-                { icon: "🫑", question: "赤パプリカと緑ピーマンの違いは？", choices: ["熟度の違い（赤は完熟）", "品種が全く違う", "育てる土の違い", "日照時間の違い"], answer: 0, exp: "緑ピーマンが完熟すると赤ピーマンや黄ピーマンになります。" },
+                { icon: "🧅", question: "タマネギを切ったときに目が痛くなる原因物質は？", choices: ["クエン酸", "硫化アリル", "カプサイシン", "グルタミン酸"], answer: 1, exp: "硫化アリル（アリシンに変化）が蒸発して目を刺激します。" },
+                { icon: "🥬", question: "ホウレンソウに多く含まれ、貧血予防に効果的なミネラルは？", choices: ["カルシウム", "亜鉛", "鉄分", "マグネシウム"], answer: 2, exp: "ホウレンソウには鉄分や葉酸が豊富に含まれます。" },
+                { icon: "🫑", question: "赤パプリカと緑ピーマンの違いは？", choices: ["品種が全く違う", "育てる土の違い", "日照時間の違い", "熟度の違い（赤は完熟）"], answer: 3, exp: "緑ピーマンが完熟すると赤ピーマンや黄ピーマンになります。" },
                 { icon: "🧄", question: "ニンニクのニオイのもとで、ビタミンB1の吸収を高める成分は？", choices: ["アリシン", "ジンゲロール", "ピペリン", "サンショオール"], answer: 0, exp: "アリシンは疲労回復に効果的な栄養成分です。" },
-                { icon: "🎃", question: "カットしたカボチャの正しい保存方法は？", choices: ["種とワタを取り除いてラップ", "そのままラップ", "水に浸ける", "常温放置"], answer: 0, exp: "カボチャは種とワタから傷むため、取り除いてラップ密閉します。" },
-                { icon: "🫚", question: "ショウガを加熱すると増える温め成分は？", choices: ["ショウガオール", "アリシン", "カプサイシン", "ピペリン"], answer: 0, exp: "加熱・乾燥によってショウガオールに変化し、体を温める効果が高まります。" },
-                { icon: "🥒", question: "キュウリのイボイボの本来の役割は何？", choices: ["身を守るため（敵避け・水分蒸散防止）", "虫を引き寄せるため", "光を取り込むため", "飾り"], answer: 0, exp: "イボイボは水分蒸発や外敵から身を守る役割があります。" },
+                { icon: "🎃", question: "カットしたカボチャの正しい保存方法は？", choices: ["そのままラップ", "種とワタを取り除いてラップ", "水に浸ける", "常温放置"], answer: 1, exp: "カボチャは種とワタから傷むため、取り除いてラップ密閉します。" },
+                { icon: "🫚", question: "ショウガを加熱すると増える温め成分は？", choices: ["アリシン", "カプサイシン", "ショウガオール", "ピペリン"], answer: 2, exp: "加熱・乾燥によってショウガオールに変化し、体を温める効果が高まります。" },
+                { icon: "🥒", question: "キュウリのイボイボの本来の役割は何？", choices: ["虫を引き寄せるため", "光を取り込むため", "飾り", "身を守るため（敵避け・水分蒸散防止）"], answer: 3, exp: "イボイボは水分蒸発や外敵から身を守る役割があります。" },
                 { icon: "🍆", question: "ナスを水に長く浸けすぎると損なわれる栄養は？", choices: ["水溶性のナスニンやビタミン", "脂質", "タンパク質", "食物繊維"], answer: 0, exp: "ナスニンは水溶性のため水に長時間浸けると溶け出します。" },
-                { icon: "🌽", question: "トウモロコシのヒゲ（絹糸）の数の秘密は？", choices: ["粒の数と同じ", "常に50本固定", "花びらの数と同じ", "無関係"], answer: 0, exp: "ヒゲ1本1本がめしべであり、粒の数と一致します。" },
-                { icon: "🍠", question: "サツマイモをじっくり焼き芋にすると甘くなる理由は？", choices: ["酵素アミラーゼがでんぷんを糖に変えるため", "水分蒸発のみ", "砂糖が増殖する", "タンパク質変性"], answer: 0, exp: "加熱により酵素が働き、でんぷんが麦芽糖に変わります。" },
-                { icon: "🍄", question: "キノコ類を日光に当てて天日干しすると増えるビタミンは？", choices: ["ビタミンD", "ビタミンA", "ビタミンC", "ビタミンE"], answer: 0, exp: "紫外線によりエルゴステロールがビタミンDに変化します。" },
+                { icon: "🌽", question: "トウモロコシのヒゲ（絹糸）の数の秘密は？", choices: ["常に50本固定", "粒の数と同じ", "花びらの数と同じ", "無関係"], answer: 1, exp: "ヒゲ1本1本がめしべであり、粒の数と一致します。" },
+                { icon: "🍠", question: "サツマイモをじっくり焼き芋にすると甘くなる理由は？", choices: ["水分蒸発のみ", "砂糖が増殖する", "酵素アミラーゼがでんぷんを糖に変えるため", "タンパク質変性"], answer: 2, exp: "加熱により酵素が働き、でんぷんが麦芽糖に変わります。" },
+                { icon: "🍄", question: "キノコ類を日光に当てて天日干しすると増えるビタミンは？", choices: ["ビタミンA", "ビタミンC", "ビタミンE", "ビタミンD"], answer: 3, exp: "紫外線によりエルゴステロールがビタミンDに変化します。" },
                 { icon: "🥗", question: "キャベツに含まれる「ビタミンU」の主な効果は？", choices: ["胃粘膜の修復", "骨の強化", "視力回復", "筋肉増強"], answer: 0, exp: "ビタミンU（キャベジン）は胃の粘膜を守ります。" },
-                { icon: "🫛", question: "枝豆（エダマメ）が成長して熟すと何という食材になる？", choices: ["大豆（ダイズ）", "小豆（アズキ）", "落花生", "インゲン豆"], answer: 0, exp: "枝豆は大豆の未成熟な状態のものです。" },
-                { icon: "🥬", question: "小松菜はホウレンソウに比べて何の栄養素が約3倍豊富？", choices: ["カルシウム", "脂質", "ナトリウム", "糖質"], answer: 0, exp: "コマツナはカルシウムが豊富な緑黄色野菜です。" },
-                { icon: "ゴボウ", question: "ゴボウを日常的に野菜として食べる文化が定着している国は？", choices: ["日本", "アメリカ", "フランス", "インド"], answer: 0, exp: "ゴボウを美味しく常食する文化は日本独特です。" },
+                { icon: "🫛", question: "枝豆（エダマメ）が成長して熟すと何という食材になる？", choices: ["小豆（アズキ）", "大豆（ダイズ）", "落花生", "インゲン豆"], answer: 1, exp: "枝豆は大豆の未成熟な状態のものです。" },
+                { icon: "🥬", question: "小松菜はホウレンソウに比べて何の栄養素が約3倍豊富？", choices: ["脂質", "ナトリウム", "カルシウム", "糖質"], answer: 2, exp: "コマツナはカルシウムが豊富な緑黄色野菜です。" },
+                { icon: "ゴボウ", question: "ゴボウを日常的に野菜として食べる文化が定着している国は？", choices: ["アメリカ", "フランス", "インド", "日本"], answer: 3, exp: "ゴボウを美味しく常食する文化は日本独特です。" },
                 { icon: "レンコン", question: "レンコン（蓮根）に穴が開いている理由は何のため？", choices: ["泥の中で通気するため", "水を取り込むため", "軽くするため", "虫の跡"], answer: 0, exp: "泥の中で呼吸するための空気の通り道です。" },
-                { icon: "ネギ", question: "白ネギの白い部分はどのように作られる？", choices: ["土をかぶせて日光を遮る", "品種の差", "漂白する", "肥料の種類"], answer: 0, exp: "土寄せにより日光を遮ることで白く柔らかく育ちます。" },
-                { icon: "アスパラ", question: "ホワイトアスパラガスの栽培方法の秘密は？", choices: ["日光を遮光して育てる", "品種の違い", "収穫時期の違い", "雌雄の違い"], answer: 0, exp: "日光を遮って栽培するとホワイトアスパラガスになります。" },
-                { icon: "ミョウガ", question: "私たちが食べるミョウガの部位は何？", choices: ["花蕾（蕾の部分）", "根っこ", "茎", "葉っぱ"], answer: 0, exp: "食用にするミョウガは花穂（蕾）の部分です。" },
+                { icon: "ネギ", question: "白ネギの白い部分はどのように作られる？", choices: ["品種の差", "土をかぶせて日光を遮る", "漂白する", "肥料の種類"], answer: 1, exp: "土寄せにより日光を遮ることで白く柔らかく育ちます。" },
+                { icon: "アスパラ", question: "ホワイトアスパラガスの栽培方法の秘密は？", choices: ["品種の違い", "収穫時期の違い", "日光を遮光して育てる", "雌雄の違い"], answer: 2, exp: "日光を遮って栽培するとホワイトアスパラガスになります。" },
+                { icon: "ミョウガ", question: "私たちが食べるミョウガの部位は何？", choices: ["根っこ", "茎", "葉っぱ", "花蕾（蕾の部分）"], answer: 3, exp: "食用にするミョウガは花穂（蕾）の部分です。" },
                 { icon: "セロリ", question: "セロリ特有の香り成分の主な効果は？", choices: ["精神安定・イライラ鎮静", "血糖値急上昇", "筋力増強", "体温低下"], answer: 0, exp: "セロリの香りは気持ちを落ち着かせる効果があります。" },
-                { icon: "ゴーヤ", question: "ゴーヤの苦味成分の主な効能は？", choices: ["健胃・食欲増進", "睡眠導入", "骨の強化", "視力回復"], answer: 0, exp: "苦味成分モモルデシンは食欲を増進させます。" }
+                { icon: "ゴーヤ", question: "ゴーヤの苦味成分の主な効能は？", choices: ["睡眠導入", "健胃・食欲増進", "骨の強化", "視力回復"], answer: 1, exp: "苦味成分モモルデシンは食欲を増進させます。" }
             ],
             hard: [ // 上級: 何科の野菜か・植物分類 (25問)
-                { icon: "🍅", question: "トマトは何科の野菜？", choices: ["ナス科", "アブラナ科", "ウリ科", "セリ科"], answer: 0, exp: "トマト、ナス、ピーマン、ジャガイモは「ナス科」です。" },
-                { icon: "🥦", question: "ブロッコリーは何科の野菜？", choices: ["アブラナ科", "キク科", "セリ科", "ヒルガオ科"], answer: 0, exp: "ブロッコリー、キャベツ、ダイコンは「アブラナ科」です。" },
+                { icon: "🍅", question: "トマトは何科の野菜？", choices: ["アブラナ科", "ウリ科", "ナス科", "セリ科"], answer: 2, exp: "トマト、ナス、ピーマン、ジャガイモは「ナス科」です。" },
+                { icon: "🥦", question: "ブロッコリーは何科の野菜？", choices: ["キク科", "セリ科", "ヒルガオ科", "アブラナ科"], answer: 3, exp: "ブロッコリー、キャベツ、ダイコンは「アブラナ科」です。" },
                 { icon: "🥒", question: "キュウリは何科の野菜？", choices: ["ウリ科", "ナス科", "マメ科", "バラ科"], answer: 0, exp: "キュウリ、カボチャ、スイカは「ウリ科」です。" },
-                { icon: "🥕", question: "ニンジンは何科の野菜？", choices: ["セリ科", "アブラナ科", "キク科", "ユリ科"], answer: 0, exp: "ニンジン、セロリ、パセリは「セリ科」です。" },
-                { icon: "🥔", question: "ジャガイモは何科の野菜？", choices: ["ナス科", "サトイモ科", "ヒルガオ科", "ヤマノイモ科"], answer: 0, exp: "ジャガイモは「ナス科」の植物です。" },
-                { icon: "🍠", question: "サツマイモは何科の野菜？", choices: ["ヒルガオ科", "ナス科", "サトイモ科", "アブラナ科"], answer: 0, exp: "サツマイモはアサガオと同じ「ヒルガオ科」です。" },
+                { icon: "🥕", question: "ニンジンは何科の野菜？", choices: ["アブラナ科", "セリ科", "キク科", "ユリ科"], answer: 1, exp: "ニンジン、セロリ、パセリは「セリ科」です。" },
+                { icon: "🥔", question: "ジャガイモは何科の野菜？", choices: ["サトイモ科", "ヒルガオ科", "ナス科", "ヤマノイモ科"], answer: 2, exp: "ジャガイモは「ナス科」の植物です。" },
+                { icon: "🍠", question: "サツマイモは何科の野菜？", choices: ["ナス科", "サトイモ科", "アブラナ科", "ヒルガオ科"], answer: 3, exp: "サツマイモはアサガオと同じ「ヒルガオ科」です。" },
                 { icon: "🥬", question: "レタスは何科の野菜？", choices: ["キク科", "アブラナ科", "アカザ科", "セリ科"], answer: 0, exp: "レタスやサンチュ、ゴボウは「キク科」です。" },
-                { icon: "🧅", question: "タマネギやネギは何科（旧ユリ科）？", choices: ["ヒガンバナ科（ネギ属）", "ナス科", "セリ科", "アブラナ科"], answer: 0, exp: "タマネギやネギは「ヒガンバナ科ネギ属」です。" },
-                { icon: "🥬", question: "ホウレンソウは何科（旧アカザ科）の野菜？", choices: ["ヒユ科", "アブラナ科", "キク科", "セリ科"], answer: 0, exp: "ホウレンソウは「ヒユ科」に分類されます。" },
-                { icon: "🫛", question: "エダマメやソラマメは何科の野菜？", choices: ["マメ科", "アブラナ科", "キク科", "イネ科"], answer: 0, exp: "マメ科植物は窒素固定能力を持ちます。" },
+                { icon: "🧅", question: "タマネギやネギは何科（旧ユリ科）？", choices: ["ナス科", "ヒガンバナ科（ネギ属）", "セリ科", "アブラナ科"], answer: 1, exp: "タマネギやネギは「ヒガンバナ科ネギ属」です。" },
+                { icon: "🥬", question: "ホウレンソウは何科（旧アカザ科）の野菜？", choices: ["アブラナ科", "キク科", "ヒユ科", "セリ科"], answer: 2, exp: "ホウレンソウは「ヒユ科」に分類されます。" },
+                { icon: "🫛", question: "エダマメやソラマメは何科の野菜？", choices: ["アブラナ科", "キク科", "イネ科", "マメ科"], answer: 3, exp: "マメ科植物は窒素固定能力を持ちます。" },
                 { icon: "🌽", question: "トウモロコシは何科の植物？", choices: ["イネ科", "カヤツリグサ科", "マメ科", "キウイ科"], answer: 0, exp: "トウモロコシやイネ、ムギは「イネ科」です。" },
-                { icon: "🌿", question: "シソ（大葉）やバジルは何科の植物？", choices: ["シソ科", "セリ科", "ミカン科", "キク科"], answer: 0, exp: "シソ科の植物は芳香成分を持ちます。" },
-                { icon: "🫚", question: "ショウガやミョウガは何科の植物？", choices: ["ショウガ科", "サトイモ科", "コショウ科", "ユリ科"], answer: 0, exp: "ショウガやミョウガは「ショウガ科」です。" },
-                { icon: "🌱", question: "アスパラガスは何科の植物？", choices: ["キジカクシ科", "アブラナ科", "セリ科", "イネ科"], answer: 0, exp: "アスパラガスは「キジカクシ科」です。" },
+                { icon: "🌿", question: "シソ（大葉）やバジルは何科の植物？", choices: ["セリ科", "シソ科", "ミカン科", "キク科"], answer: 1, exp: "シソ科の植物は芳香成分を持ちます。" },
+                { icon: "🫚", question: "ショウガやミョウガは何科の植物？", choices: ["サトイモ科", "コショウ科", "ショウガ科", "ユリ科"], answer: 2, exp: "ショウガやミョウガは「ショウガ科」です。" },
+                { icon: "🌱", question: "アスパラガスは何科の植物？", choices: ["アブラナ科", "セリ科", "イネ科", "キジカクシ科"], answer: 3, exp: "アスパラガスは「キジカクシ科」です。" },
                 { icon: "オクラ", question: "オクラは何科の植物？", choices: ["アオイ科", "ナス科", "ウリ科", "マメ科"], answer: 0, exp: "オクラはハイビスカスと同じ「アオイ科」です。" },
-                { icon: "ミズナ", question: "水菜（ミズナ）は何科の野菜？", choices: ["アブラナ科", "セリ科", "キク科", "ヒユ科"], answer: 0, exp: "ミズナは「アブラナ科」の野菜です。" },
-                { icon: "ズッキーニ", question: "ズッキーニは何科の野菜？", choices: ["ウリ科", "ナス科", "アブラナ科", "セリ科"], answer: 0, exp: "ズッキーニは「ウリ科カボチャ属」です。" },
-                { icon: "パセリ", question: "パセリは何科の野菜？", choices: ["セリ科", "シソ科", "キク科", "アブラナ科"], answer: 0, exp: "パセリは「セリ科」の二年草です。" },
+                { icon: "ミズナ", question: "水菜（ミズナ）は何科の野菜？", choices: ["セリ科", "アブラナ科", "キク科", "ヒユ科"], answer: 1, exp: "ミズナは「アブラナ科」の野菜です。" },
+                { icon: "ズッキーニ", question: "ズッキーニは何科の野菜？", choices: ["ナス科", "アブラナ科", "ウリ科", "セリ科"], answer: 2, exp: "ズッキーニは「ウリ科カボチャ属」です。" },
+                { icon: "パセリ", question: "パセリは何科の野菜？", choices: ["シソ科", "キク科", "アブラナ科", "セリ科"], answer: 3, exp: "パセリは「セリ科」の二年草です。" },
                 { icon: "タケノコ", question: "タケノコは何科の植物？", choices: ["イネ科", "サトイモ科", "ヤシ科", "キジカクシ科"], answer: 0, exp: "竹や笹は「イネ科タケ亜科」です。" },
-                { icon: "フキ", question: "フキやフキノトウは何科の植物？", choices: ["キク科", "セリ科", "ユキノシタ科", "バラ科"], answer: 0, exp: "フキは「キク科フキ属」です。" },
-                { icon: "イチゴ", question: "イチゴは何科の植物？", choices: ["バラ科", "ナス科", "ウリ科", "ミカン科"], answer: 0, exp: "イチゴやリンゴは「バラ科」です。" },
-                { icon: "スイカ", question: "スイカは何科の植物？", choices: ["ウリ科", "ナス科", "ブドウ科", "トケイソウ科"], answer: 0, exp: "スイカは「ウリ科」のツル性一年草です。" },
+                { icon: "フキ", question: "フキやフキノトウは何科の植物？", choices: ["セリ科", "キク科", "ユキノシタ科", "バラ科"], answer: 1, exp: "フキは「キク科フキ属」です。" },
+                { icon: "イチゴ", question: "イチゴは何科の植物？", choices: ["ナス科", "ウリ科", "バラ科", "ミカン科"], answer: 2, exp: "イチゴやリンゴは「バラ科」です。" },
+                { icon: "スイカ", question: "スイカは何科の植物？", choices: ["ナス科", "ブドウ科", "トケイソウ科", "ウリ科"], answer: 3, exp: "スイカは「ウリ科」のツル性一年草です。" },
                 { icon: "ワサビ", question: "ワサビは何科の植物？", choices: ["アブラナ科", "ショウガ科", "セリ科", "コショウ科"], answer: 0, exp: "ワサビは「アブラナ科ワサビ属」です。" },
-                { icon: "カブ", question: "カブは何科の野菜？", choices: ["アブラナ科", "セリ科", "ヒユ科", "キク科"], answer: 0, exp: "カブは「アブラナ科」です。" },
-                { icon: "ナガイモ", question: "ナガイモ（山芋）は何科の植物？", choices: ["ヤマノイモ科", "サトイモ科", "ヒルガオ科", "ユリ科"], answer: 0, exp: "ナガイモは「ヤマノイモ科」です。" }
+                { icon: "カブ", question: "カブは何科の野菜？", choices: ["セリ科", "アブラナ科", "ヒユ科", "キク科"], answer: 1, exp: "カブは「アブラナ科」です。" },
+                { icon: "ナガイモ", question: "ナガイモ（山芋）は何科の植物？", choices: ["サトイモ科", "ヒルガオ科", "ヤマノイモ科", "ユリ科"], answer: 2, exp: "ナガイモは「ヤマノイモ科」です。" }
             ]
         };
 
@@ -510,29 +532,30 @@
             dirLight.position.set(5, 12, 5);
             scene.add(dirLight);
 
-            // Hover Vehicle
             const vehicleGroup = new THREE.Group();
             
             const bodyGeo = new THREE.BoxGeometry(1.2, 0.5, 2);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.8, roughness: 0.2 });
+            bodyMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.8, roughness: 0.2 });
             const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
             bodyMesh.position.y = 0.5;
             vehicleGroup.add(bodyMesh);
 
             const cockpitGeo = new THREE.BoxGeometry(0.8, 0.4, 0.9);
-            const cockpitMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+            cockpitMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
             const cockpitMesh = new THREE.Mesh(cockpitGeo, cockpitMat);
             cockpitMesh.position.set(0, 0.8, -0.2);
             vehicleGroup.add(cockpitMesh);
 
             const thrusterGeo = new THREE.BoxGeometry(0.8, 0.2, 0.1);
-            const thrusterMat = new THREE.MeshBasicMaterial({ color: 0x34d399 });
+            thrusterMat = new THREE.MeshBasicMaterial({ color: 0x34d399 });
             const thrusterMesh = new THREE.Mesh(thrusterGeo, thrusterMat);
             thrusterMesh.position.set(0, 0.5, 1.05);
             vehicleGroup.add(thrusterMesh);
 
             playerVehicle = vehicleGroup;
             scene.add(playerVehicle);
+
+            applyVehicleColor(equippedColor);
 
             // Highway Track
             const roadGeo = new THREE.PlaneGeometry(12, 200);
@@ -689,14 +712,14 @@
                     if (idx !== -1) obstacles.splice(idx, 1);
                 }
 
-                // 連続衝突防止：近くに迫っている壁をクリアし、次の出現までの猶予を確保
+                // 連続衝突防止：近くに迫っている壁を大きくクリアし、次の出現までの十分な猶予を確保
                 for (let i = obstacles.length - 1; i >= 0; i--) {
-                    if (obstacles[i].position.z > -35) {
+                    if (obstacles[i].position.z > -50) {
                         scene.remove(obstacles[i]);
                         obstacles.splice(i, 1);
                     }
                 }
-                spawnTimer = -6.0;
+                spawnTimer = -15.0;
 
                 setTimeout(() => {
                     document.getElementById('quizModal').classList.add('hidden');
@@ -718,6 +741,14 @@
                     if (lives <= 0) {
                         handleGameOver();
                     } else {
+                        // 復帰時に連続衝突しないよう壁をクリア＆猶予時間を追加
+                        for (let i = obstacles.length - 1; i >= 0; i--) {
+                            if (obstacles[i].position.z > -50) {
+                                scene.remove(obstacles[i]);
+                                obstacles.splice(i, 1);
+                            }
+                        }
+                        spawnTimer = -15.0;
                         gameState = 'PLAYING';
                     }
                 }, 2500);
@@ -778,23 +809,25 @@
                 gridHelper.position.z += speed * 5;
                 if (gridHelper.position.z > -40) gridHelper.position.z = -80;
 
-                // 壁の生成間隔を広げた（4.0 -> 12.0）
+                // 壁の生成間隔を十分に広く設定（12.0 -> 28.0）
                 spawnTimer += speed;
-                if (spawnTimer > 12.0) {
+                if (spawnTimer > 28.0) {
                     spawnObstacle();
                     spawnTimer = 0;
                 }
 
                 for (let i = obstacles.length - 1; i >= 0; i--) {
                     const obs = obstacles[i];
+                    const prevZ = obs.position.z;
                     obs.position.z += speed * 12;
 
-                    if (Math.abs(obs.position.z - playerVehicle.position.z) < 1.2) {
+                    // 高速移動時のすり抜け（トンネル現象）を防ぐ範囲跨ぎ検出
+                    if (prevZ <= playerVehicle.position.z + 1.0 && obs.position.z >= playerVehicle.position.z - 1.0) {
                         triggerQuizChallenge(obs, i);
                         break;
                     }
 
-                    if (obs.position.z > 5) {
+                    if (obs.position.z > 10) {
                         scene.remove(obs);
                         obstacles.splice(i, 1);
                     }
@@ -812,7 +845,7 @@
             speed = baseSpeed;
             lives = 3;
             totalSmashes = 0;
-            spawnTimer = -3.0; // ゲーム開始直後も猶予を持たせる
+            spawnTimer = -5.0; // ゲーム開始直後もゆとりを持たせる
             playerVehicle.position.x = 0;
 
             obstacles.forEach(obs => scene.remove(obs));
@@ -836,24 +869,97 @@
             document.getElementById('gameOverModal').classList.add('hidden');
             const menuOverlay = document.getElementById('menuOverlay');
             menuOverlay.classList.remove('opacity-0', 'pointer-events-none');
+            gameState = 'MENU';
             updateMenuUI();
         });
 
         document.getElementById('openGarageBtn').addEventListener('click', () => {
             document.getElementById('garageGold').textContent = cyberGold;
+            renderGarageColors();
             document.getElementById('garageModal').classList.remove('hidden');
         });
 
         document.getElementById('garageFromGameOverBtn').addEventListener('click', () => {
             document.getElementById('gameOverModal').classList.add('hidden');
             document.getElementById('garageGold').textContent = cyberGold;
+            renderGarageColors();
             document.getElementById('garageModal').classList.remove('hidden');
         });
 
         document.getElementById('closeGarageBtn').addEventListener('click', () => {
             document.getElementById('garageModal').classList.add('hidden');
+            const menuOverlay = document.getElementById('menuOverlay');
+            menuOverlay.classList.remove('opacity-0', 'pointer-events-none');
+            gameState = 'MENU';
             updateMenuUI();
         });
+
+        function applyVehicleColor(colorId) {
+            const palette = COLOR_PALETTES.find(p => p.id === colorId) || COLOR_PALETTES[0];
+            equippedColor = palette.id;
+            if (bodyMat && cockpitMat && thrusterMat) {
+                bodyMat.color.setHex(palette.hex);
+                cockpitMat.color.setHex(palette.cockpit);
+                thrusterMat.color.setHex(palette.thruster);
+            }
+        }
+
+        function renderGarageColors() {
+            const colorContainer = document.getElementById('garageColorList');
+            if (!colorContainer) return;
+            colorContainer.innerHTML = '';
+
+            COLOR_PALETTES.forEach(p => {
+                const isUnlocked = unlockedColors.includes(p.id);
+                const isEquipped = equippedColor === p.id;
+
+                const card = document.createElement('div');
+                card.className = `p-2.5 rounded-xl border flex flex-col justify-between gap-1.5 bg-slate-900/90 transition ${
+                    isEquipped ? 'border-cyan-400 bg-cyan-950/20 shadow-sm shadow-cyan-500/30' : 'border-slate-800'
+                }`;
+
+                let buttonHtml = '';
+                if (isEquipped) {
+                    buttonHtml = `<span class="text-[10px] font-bold text-cyan-400 bg-cyan-500/10 px-2 py-1 rounded-lg border border-cyan-500/30 text-center w-full block">装備中</span>`;
+                } else if (isUnlocked) {
+                    buttonHtml = `<button onclick="buyOrEquipColor('${p.id}')" class="w-full py-1 text-[10px] font-bold text-emerald-300 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/50 rounded-lg transition">装備する</button>`;
+                } else {
+                    buttonHtml = `<button onclick="buyOrEquipColor('${p.id}')" class="w-full py-1 text-[10px] font-bold text-amber-300 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 rounded-lg transition">${p.price} $ 解放</button>`;
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <div class="w-4 h-4 rounded-full border border-white/20 shrink-0" style="background-color: ${p.previewHex}"></div>
+                        <span class="text-xs font-bold text-white truncate">${p.name}</span>
+                    </div>
+                    ${buttonHtml}
+                `;
+                colorContainer.appendChild(card);
+            });
+        }
+
+        function buyOrEquipColor(colorId) {
+            const palette = COLOR_PALETTES.find(p => p.id === colorId);
+            if (!palette) return;
+
+            if (unlockedColors.includes(colorId)) {
+                applyVehicleColor(colorId);
+                showToast(`${palette.name} に変更しました！`, "success");
+            } else {
+                if (cyberGold >= palette.price) {
+                    cyberGold -= palette.price;
+                    unlockedColors.push(colorId);
+                    applyVehicleColor(colorId);
+                    showToast(`${palette.name} を購入・装備しました！`, "success");
+                } else {
+                    showToast("ゴールドが不足しています", "error");
+                }
+            }
+
+            document.getElementById('garageGold').textContent = cyberGold;
+            renderGarageColors();
+            saveUserData();
+        }
 
         function buyUpgrade(type) {
             if (type === 'speed') {
@@ -882,6 +988,7 @@
             document.getElementById('costSpeed').textContent = upgrades.speedLvl * 100;
             document.getElementById('lvlPower').textContent = upgrades.powerLvl;
             document.getElementById('costPower').textContent = upgrades.powerLvl * 150;
+            renderGarageColors();
             saveUserData();
         }
 
@@ -895,7 +1002,9 @@
                 highScore,
                 cyberGold,
                 totalSmashes,
-                upgrades
+                upgrades,
+                unlockedColors,
+                equippedColor
             };
 
             localStorage.setItem('hyper_smash_runner_data', JSON.stringify(data));
@@ -914,7 +1023,10 @@
                 cyberGold = data.cyberGold || 0;
                 totalSmashes = data.totalSmashes || 0;
                 upgrades = data.upgrades || { speedLvl: 1, powerLvl: 1 };
+                unlockedColors = data.unlockedColors || ['cyan'];
+                equippedColor = data.equippedColor || 'cyan';
             }
+            applyVehicleColor(equippedColor);
             updateMenuUI();
         }
 
@@ -928,6 +1040,8 @@
                     cyberGold = data.cyberGold || 0;
                     totalSmashes = data.totalSmashes || 0;
                     upgrades = data.upgrades || { speedLvl: 1, powerLvl: 1 };
+                    unlockedColors = data.unlockedColors || ['cyan'];
+                    equippedColor = data.equippedColor || 'cyan';
                 } else {
                     loadLocalData();
                     saveUserData();
@@ -936,6 +1050,7 @@
                 console.warn("Firestore load fallback to local", err);
                 loadLocalData();
             }
+            applyVehicleColor(equippedColor);
             updateMenuUI();
         }
 
